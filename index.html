@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,16 +8,25 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 16px;
-      background: #10131c; color: #f1f5f9;
+      margin: 0;
+      padding: 16px;
+      background: #10131c;
+      color: #f1f5f9;
       font-family: Arial, sans-serif;
-      display: grid; place-items: center; min-height: 100vh;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
     }
     .chat {
-      width: 100%; max-width: 650px; height: 85vh;
-      display: flex; flex-direction: column;
-      background: #1b2030; border: 1px solid #343b50;
-      border-radius: 16px; overflow: hidden;
+      width: 100%;
+      max-width: 650px;
+      height: 85vh;
+      display: flex;
+      flex-direction: column;
+      background: #1b2030;
+      border: 1px solid #343b50;
+      border-radius: 16px;
+      overflow: hidden;
     }
     header { padding: 18px; background: #242b40; }
     h1 { margin: 0 0 6px; font-size: 23px; }
@@ -30,14 +39,23 @@
     .controls { padding: 12px; border-top: 1px solid #343b50; }
     form { display: flex; gap: 8px; margin-top: 8px; }
     input {
-      min-width: 0; width: 100%; padding: 12px;
-      border: 1px solid #424b64; border-radius: 9px;
-      background: #101522; color: white; font-size: 15px;
+      min-width: 0;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #424b64;
+      border-radius: 9px;
+      background: #101522;
+      color: white;
+      font-size: 15px;
     }
     button {
-      padding: 0 16px; border: 0; border-radius: 9px;
-      background: #6878f5; color: white;
-      font-weight: bold; cursor: pointer;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 9px;
+      background: #6878f5;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
     }
     button:disabled { opacity: .5; cursor: wait; }
     #status.error { color: #ffaaaa; }
@@ -67,8 +85,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const URL_SUPABASE = "https://xluskazgonjpchcgdzii.supabase.co";
-    const CLAVE_PUBLICA = "PEGA_AQUI_TU_CLAVE_SB_PUBLISHABLE";
+    const URL_SUPABASE =
+      "https://xluskazgonjpchcgdzii.supabase.co";
+
+    const CLAVE_PUBLICA =
+      "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
 
     const statusBox = document.getElementById("status");
     const messagesBox = document.getElementById("messages");
@@ -85,7 +106,9 @@
     }
 
     function showMessage(message) {
-      if (messagesBox.querySelector('[data-id="' + message.id + '"]')) return;
+      if (messagesBox.querySelector('[data-id="' + message.id + '"]')) {
+        return;
+      }
 
       const item = document.createElement("article");
       item.className = "message";
@@ -104,17 +127,21 @@
 
     async function start() {
       if (!window.supabase) {
-        status("No se pudo cargar la biblioteca. Recargá la página.", true);
+        status("No se pudo cargar Supabase. Recargá la página.", true);
         return;
       }
-      if (CLAVE_PUBLICA === "https://xluskazgonjpchcgdzii.supabase.co/") {
-        status("sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk", true);
+
+      if (!CLAVE_PUBLICA.startsWith("sb_publishable_")) {
+        status("Revisá la clave pública de Supabase.", true);
         return;
       }
 
       const client = window.supabase.createClient(
-        URL_SUPABASE, CLAVE_PUBLICA
+        URL_SUPABASE,
+        CLAVE_PUBLICA
       );
+
+      status("Cargando mensajes...");
 
       const { data, error } = await client
         .from("messages")
@@ -134,12 +161,20 @@
           event: "INSERT",
           schema: "public",
           table: "messages"
-        }, payload => showMessage(payload.new))
+        }, payload => {
+          showMessage(payload.new);
+        })
         .subscribe((state) => {
           if (state === "SUBSCRIBED") {
             status("Conectado. ¡Ya podés hablar!");
-          } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT") {
-            status("Error de conexión en tiempo real. Recargá la página.", true);
+          } else if (
+            state === "CHANNEL_ERROR" ||
+            state === "TIMED_OUT"
+          ) {
+            status(
+              "Error de conexión en tiempo real. Recargá la página.",
+              true
+            );
           }
         });
 
@@ -157,20 +192,24 @@
         localStorage.setItem("chatName", username);
         sendButton.disabled = true;
 
-        const { error: sendError } = await client
-          .from("messages")
-          .insert({ username, content });
+        try {
+          const { error: sendError } = await client
+            .from("messages")
+            .insert({ username, content });
 
-        sendButton.disabled = false;
+          if (sendError) {
+            status("No se pudo enviar: " + sendError.message, true);
+            return;
+          }
 
-        if (sendError) {
-          status("No se pudo enviar: " + sendError.message, true);
-          return;
+          input.value = "";
+          input.focus();
+          status("Mensaje enviado.");
+        } catch (error) {
+          status("Error al enviar: " + error.message, true);
+        } finally {
+          sendButton.disabled = false;
         }
-
-        input.value = "";
-        input.focus();
-        status("Mensaje enviado.");
       });
     }
 
@@ -180,3 +219,4 @@
   </script>
 </body>
 </html>
+```
