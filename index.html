@@ -134,4 +134,625 @@
     input, select {
       min-width: 0;
       width: 100%;
-      padding: 11
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+
+    input[type="color"] {
+      height: 44px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    input[type="file"] { font-size: 13px; }
+
+    .profile-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--accent);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      overflow: hidden;
+    }
+
+    .avatar.large {
+      width: 64px;
+      height: 64px;
+      min-width: 64px;
+      font-size: 20px;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background-color: transparent;
+      background-image: none;
+    }
+
+    /* Opciones de fondo */
+
+    #messages.bg-gradient {
+      background-image:
+        linear-gradient(135deg,
+          color-mix(in srgb, var(--accent) 10%, transparent),
+          transparent 65%);
+    }
+
+    #messages.bg-dots {
+      background-image: radial-gradient(
+        color-mix(in srgb, var(--muted) 25%, transparent) 1px,
+        transparent 1px
+      );
+      background-size: 18px 18px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .message-body {
+      min-width: 0;
+      max-width: calc(100% - 48px);
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--bubble);
+      border: 1px solid var(--border);
+    }
+
+    .message strong {
+      color: var(--accent);
+      overflow-wrap: anywhere;
+    }
+
+    .message p {
+      margin: 5px 0 0;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    /* Estilos de burbujas */
+
+    #messages.bubbles-rounded .message-body {
+      border-radius: 22px;
+    }
+
+    #messages.bubbles-square .message-body {
+      border-radius: 4px;
+    }
+
+    .controls {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    #profileLine {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 8px;
+    }
+
+    #profileLine .avatar {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+    }
+
+    form {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #messageInput { flex: 1; }
+
+    @media (max-width: 480px) {
+      body { padding: 6px; }
+
+      .chat {
+        height: 94vh;
+        min-height: 350px;
+        border-radius: 12px;
+      }
+
+      header { padding: 13px; }
+      h1 { font-size: 21px; }
+      #messages { padding: 12px; }
+      .controls { padding: 9px; }
+      form { gap: 6px; }
+      form button { padding: 0 12px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="chat">
+    <header>
+      <h1>💬 Mi Chat</h1>
+      <p>Un lugar para hablar con todos</p>
+      <div id="status">Conectando...</div>
+
+      <div class="top-actions">
+        <button id="themeButton" type="button">
+          ☀️ Modo claro
+        </button>
+        <button id="settingsButton" class="secondary"
+          type="button" aria-expanded="false">
+          ⚙️ Personalizar
+        </button>
+      </div>
+    </header>
+
+    <section id="settings" hidden>
+      <div class="setting">
+        <span class="setting-title">Tu perfil</span>
+
+        <div class="profile-preview">
+          <img id="profilePreview" class="avatar large"
+            alt="Vista previa de tu foto de perfil">
+          <div>
+            <strong id="profileName">Tu nombre</strong>
+            <small style="display:block">
+              Así se verá tu foto en este dispositivo.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label for="photoInput">📸 Foto de perfil</label>
+        <input id="photoInput" type="file"
+          accept="image/jpeg,image/png,image/webp">
+        <small>Formatos JPG, PNG y WebP. Máximo 5 MB.
+          La foto se guarda en este dispositivo.</small>
+        <button id="removePhoto" type="button"
+          class="secondary">Quitar foto</button>
+      </div>
+
+      <div class="setting">
+        <label for="colorInput">🎨 Color principal</label>
+        <input id="colorInput" type="color" value="#6878f5">
+      </div>
+
+      <div class="setting">
+        <label for="backgroundSelect">🖼️ Fondo del chat</label>
+        <select id="backgroundSelect">
+          <option value="plain">Simple</option>
+          <option value="gradient">Degradado</option>
+          <option value="dots">Puntos</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="bubbleSelect">💬 Estilo de burbujas</label>
+        <select id="bubbleSelect">
+          <option value="normal">Normal</option>
+          <option value="rounded">Redondeadas</option>
+          <option value="square">Cuadradas</option>
+        </select>
+      </div>
+
+      <button id="resetSettings" type="button"
+        class="secondary">Restablecer personalización</button>
+    </section>
+
+    <section id="messages" aria-live="polite"></section>
+
+    <div class="controls">
+      <div id="profileLine">
+        <img id="currentAvatar" class="avatar"
+          alt="Tu foto de perfil">
+        <input id="username" maxlength="24"
+          placeholder="Tu nombre" autocomplete="nickname">
+      </div>
+
+      <form id="chatForm">
+        <input id="messageInput" maxlength="500"
+          placeholder="Escribí un mensaje..."
+          autocomplete="off" required>
+        <button id="sendButton" type="submit">Enviar</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const URL_SUPABASE =
+      "https://xluskazgonjpchcgdzii.supabase.co";
+
+    const CLAVE_PUBLICA =
+      "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
+
+    const statusBox = document.getElementById("status");
+    const messagesBox = document.getElementById("messages");
+    const nameInput = document.getElementById("username");
+    const input = document.getElementById("messageInput");
+    const form = document.getElementById("chatForm");
+    const sendButton = document.getElementById("sendButton");
+
+    const settings = document.getElementById("settings");
+    const settingsButton = document.getElementById("settingsButton");
+    const themeButton = document.getElementById("themeButton");
+    const colorInput = document.getElementById("colorInput");
+    const backgroundSelect =
+      document.getElementById("backgroundSelect");
+    const bubbleSelect = document.getElementById("bubbleSelect");
+    const photoInput = document.getElementById("photoInput");
+    const profilePreview = document.getElementById("profilePreview");
+    const currentAvatar = document.getElementById("currentAvatar");
+    const profileName = document.getElementById("profileName");
+
+    nameInput.value = localStorage.getItem("chatName") || "";
+
+    const DEFAULT_AVATAR =
+      "data:image/svg+xml;charset=UTF-8," +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">' +
+        '<rect width="80" height="80" rx="40" fill="#6878f5"/>' +
+        '<text x="40" y="53" text-anchor="middle" font-size="38" fill="white">?</text>' +
+        '</svg>'
+      );
+
+    let profilePhoto = "";
+
+    try {
+      profilePhoto = localStorage.getItem("chatProfilePhoto") || "";
+    } catch (error) {
+      console.warn("No se pudo leer la foto guardada.", error);
+    }
+
+    function status(text, error = false) {
+      statusBox.textContent = text;
+      statusBox.classList.toggle("error", error);
+    }
+
+    function initials(name) {
+      return name.trim().slice(0, 2).toUpperCase() || "?";
+    }
+
+    function setAvatar(element, name, photo) {
+      if (photo) {
+        element.src = photo;
+        element.alt = "Foto de perfil de " + name;
+      } else {
+        element.src = DEFAULT_AVATAR;
+        element.alt = "Avatar predeterminado de " + name;
+      }
+    }
+
+    function updateProfile() {
+      const name = nameInput.value.trim() || "Tu nombre";
+
+      profileName.textContent = name;
+      setAvatar(profilePreview, name, profilePhoto);
+      setAvatar(currentAvatar, name, profilePhoto);
+    }
+
+    function applySettings() {
+      const theme = localStorage.getItem("chatTheme") || "dark";
+      const color = localStorage.getItem("chatColor") || "#6878f5";
+      const background =
+        localStorage.getItem("chatBackground") || "plain";
+      const bubbles =
+        localStorage.getItem("chatBubbles") || "normal";
+
+      document.body.classList.toggle("light", theme === "light");
+      themeButton.textContent =
+        theme === "light" ? "🌙 Modo oscuro" : "☀️ Modo claro";
+
+      document.documentElement.style.setProperty("--accent", color);
+
+      messagesBox.classList.remove(
+        "bg-gradient", "bg-dots",
+        "bubbles-rounded", "bubbles-square"
+      );
+
+      if (background !== "plain") {
+        messagesBox.classList.add("bg-" + background);
+      }
+
+      if (bubbles === "rounded") {
+        messagesBox.classList.add("bubbles-rounded");
+      } else if (bubbles === "square") {
+        messagesBox.classList.add("bubbles-square");
+      }
+
+      colorInput.value = color;
+      backgroundSelect.value = background;
+      bubbleSelect.value = bubbles;
+    }
+
+    themeButton.addEventListener("click", () => {
+      const nextTheme =
+        document.body.classList.contains("light") ? "dark" : "light";
+
+      localStorage.setItem("chatTheme", nextTheme);
+      applySettings();
+    });
+
+    settingsButton.addEventListener("click", () => {
+      const opening = settings.hidden;
+      settings.hidden = !opening;
+      settingsButton.setAttribute("aria-expanded", String(opening));
+    });
+
+    colorInput.addEventListener("input", () => {
+      localStorage.setItem("chatColor", colorInput.value);
+      applySettings();
+    });
+
+    backgroundSelect.addEventListener("change", () => {
+      localStorage.setItem("chatBackground", backgroundSelect.value);
+      applySettings();
+    });
+
+    bubbleSelect.addEventListener("change", () => {
+      localStorage.setItem("chatBubbles", bubbleSelect.value);
+      applySettings();
+    });
+
+    nameInput.addEventListener("input", updateProfile);
+
+    nameInput.addEventListener("change", () => {
+      localStorage.setItem("chatName", nameInput.value.trim());
+      updateProfile();
+    });
+
+    /*
+      Redimensiona la imagen antes de guardarla para reducir
+      el uso de almacenamiento local.
+    */
+    photoInput.addEventListener("change", () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+
+      const allowedTypes = [
+        "image/jpeg", "image/png", "image/webp"
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        status("Usá una imagen JPG, PNG o WebP.", true);
+        photoInput.value = "";
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        status("La imagen supera el límite de 5 MB.", true);
+        photoInput.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const image = new Image();
+
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxDimension = 256;
+          const scale = Math.min(
+            1,
+            maxDimension / Math.max(image.width, image.height)
+          );
+
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+
+          const context = canvas.getContext("2d");
+          context.drawImage(
+            image, 0, 0, canvas.width, canvas.height
+          );
+
+          const compressed = canvas.toDataURL("image/jpeg", 0.78);
+
+          try {
+            localStorage.setItem("chatProfilePhoto", compressed);
+            profilePhoto = compressed;
+            updateProfile();
+            status("Foto guardada en este dispositivo.");
+          } catch (error) {
+            status(
+              "No hay suficiente espacio para guardar la foto.",
+              true
+            );
+          }
+        };
+
+        image.onerror = () => {
+          status("No se pudo abrir la imagen.", true);
+        };
+
+        image.src = reader.result;
+      };
+
+      reader.onerror = () => {
+        status("No se pudo leer el archivo.", true);
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById("removePhoto").addEventListener("click", () => {
+      try {
+        localStorage.removeItem("chatProfilePhoto");
+        profilePhoto = "";
+        photoInput.value = "";
+        updateProfile();
+        status("Foto de perfil eliminada de este dispositivo.");
+      } catch (error) {
+        status("No se pudo eliminar la foto.", true);
+      }
+    });
+
+    document.getElementById("resetSettings").addEventListener("click", () => {
+      ["chatTheme", "chatColor", "chatBackground", "chatBubbles"]
+        .forEach(key => localStorage.removeItem(key));
+
+      applySettings();
+      status("Personalización restablecida.");
+    });
+
+    /*
+      Conservamos el funcionamiento original de Supabase.
+      La foto local se muestra en los mensajes que coinciden
+      con el nombre guardado en este dispositivo.
+    */
+    function showMessage(message) {
+      if (
+        messagesBox.querySelector(
+          '[data-id="' + CSS.escape(String(message.id)) + '"]'
+        )
+      ) {
+        return;
+      }
+
+      const item = document.createElement("article");
+      item.className = "message";
+      item.dataset.id = message.id;
+
+      const avatar = document.createElement("img");
+      avatar.className = "avatar";
+
+      const isOwnMessage =
+        message.username === (nameInput.value.trim() ||
+          localStorage.getItem("chatName") || "");
+
+      setAvatar(
+        avatar,
+        message.username,
+        isOwnMessage ? profilePhoto : ""
+      );
+
+      const body = document.createElement("div");
+      body.className = "message-body";
+
+      const name = document.createElement("strong");
+      name.textContent = message.username;
+
+      const content = document.createElement("p");
+      content.textContent = message.content;
+
+      body.append(name, content);
+      item.append(avatar, body);
+      messagesBox.appendChild(item);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    async function start() {
+      if (!window.supabase) {
+        status("No se pudo cargar Supabase. Recargá la página.", true);
+        return;
+      }
+
+      if (!CLAVE_PUBLICA.startsWith("sb_publishable_")) {
+        status("Revisá la clave pública de Supabase.", true);
+        return;
+      }
+
+      const client = window.supabase.createClient(
+        URL_SUPABASE,
+        CLAVE_PUBLICA
+      );
+
+      status("Cargando mensajes...");
+
+      const { data, error } = await client
+        .from("messages")
+        .select("id, username, content, created_at")
+        .order("id", { ascending: true })
+        .limit(100);
+
+      if (error) {
+        status("Error al cargar mensajes: " + error.message, true);
+        return;
+      }
+
+      data.forEach(showMessage);
+
+      client.channel("chat-publico")
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "messages"
+        }, payload => {
+          showMessage(payload.new);
+        })
+        .subscribe((state) => {
+          if (state === "SUBSCRIBED") {
+            status("Conectado. ¡Ya podés hablar!");
+          } else if (
+            state === "CHANNEL_ERROR" ||
+            state === "TIMED_OUT"
+          ) {
+            status(
+              "Error de conexión en tiempo real. Recargá la página.",
+              true
+            );
+          }
+        });
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const username = nameInput.value.trim();
+        const content = input.value.trim();
+
+        if (!username || !content) {
+          status("Escribí tu nombre y un mensaje.", true);
+          return;
+        }
+
+        localStorage.setItem("chatName", username);
+        updateProfile();
+        sendButton.disabled = true;
+
+        try {
+          const { error: sendError } = await client
+            .from("messages")
+            .insert({ username, content });
+
+          if (sendError) {
+            status("No se pudo enviar: " + sendError.message, true);
+            return;
+          }
+
+          input.value = "";
+          input.focus();
+          status("Mensaje enviado.");
+        } catch (error) {
+          status("Error al enviar: " + error.message, true);
+        } finally {
+          sendButton.disabled = false;
+        }
+      });
+    }
+
+    applySettings();
+    updateProfile();
+
+    start().catch(error => {
+      status("Error: " + error.message, true);
+    });
+  </script>
+</body>
+</html>
