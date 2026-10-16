@@ -2,894 +2,606 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mi Chat Público</title>
-
-  <style>
-    * { box-sizing: border-box; }
-
-    :root {
-      --accent: #6878f5;
-      --page: #10131c;
-      --panel: #1b2030;
-      --header: #242b40;
-      --border: #343b50;
-      --text: #f1f5f9;
-      --muted: #aab5ca;
-      --input-bg: #101522;
-      --bubble: #292f43;
-    }
-
-    body.light {
-      --page: #edf1f8;
-      --panel: #ffffff;
-      --header: #e1e8f5;
-      --border: #ccd4e3;
-      --text: #20283a;
-      --muted: #5c667a;
-      --input-bg: #ffffff;
-      --bubble: #e9edf7;
-    }
-
-    body {
-      margin: 0;
-      padding: 16px;
-      background: var(--page);
-      color: var(--text);
-      font-family: Arial, sans-serif;
-      display: grid;
-      place-items: center;
-      min-height: 100vh;
-      transition: background .2s, color .2s;
-    }
-
-    .chat {
-      width: 100%;
-      max-width: 650px;
-      height: 90vh;
-      min-height: 400px;
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    header {
-      padding: 16px;
-      background: var(--header);
-    }
-
-    h1 { margin: 0 0 6px; font-size: 23px; }
-
-    header p { margin: 0; color: var(--muted); }
-
-    #status {
-      font-size: 13px;
-      margin-top: 8px;
-      color: var(--muted);
-      overflow-wrap: anywhere;
-    }
-
-    #status.error { color: #ff7777; }
-
-    .top-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    button, select, input { font: inherit; }
-
-    button {
-      padding: 10px 14px;
-      border: 0;
-      border-radius: 9px;
-      background: var(--accent);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .5;
-      cursor: wait;
-    }
-
-    button.secondary {
-      background: var(--bubble);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    #settings {
-      padding: 14px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--border);
-      display: grid;
-      gap: 12px;
-      max-height: 40vh;
-      overflow-y: auto;
-    }
-
-    #settings[hidden] { display: none; }
-
-    .setting { display: grid; gap: 6px; }
-
-    .setting label, .setting-title {
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .setting small {
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    input, select {
-      min-width: 0;
-      width: 100%;
-      padding: 11px;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      background: var(--input-bg);
-      color: var(--text);
-    }
-
-    input[type="color"] {
-      height: 44px;
-      padding: 4px;
-      cursor: pointer;
-    }
-
-    input[type="file"] { font-size: 13px; }
-
-    .profile-preview {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .avatar {
-      width: 38px;
-      height: 38px;
-      min-width: 38px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: var(--accent);
-      color: white;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      overflow: hidden;
-    }
-
-    .avatar.large {
-      width: 64px;
-      height: 64px;
-      min-width: 64px;
-      font-size: 20px;
-    }
-
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      background-color: transparent;
-      background-image: none;
-    }
-
-    #messages.bg-gradient {
-      background-image: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--accent) 10%, transparent),
-        transparent 65%
-      );
-    }
-
-    #messages.bg-dots {
-      background-image: radial-gradient(
-        color-mix(in srgb, var(--muted) 25%, transparent) 1px,
-        transparent 1px
-      );
-      background-size: 18px 18px;
-    }
-
-    .message {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 14px;
-      overflow-wrap: anywhere;
-    }
-
-    .message-body {
-      min-width: 0;
-      max-width: calc(100% - 48px);
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: var(--bubble);
-      border: 1px solid var(--border);
-    }
-
-    .message strong {
-      color: var(--accent);
-      overflow-wrap: anywhere;
-    }
-
-    .message p {
-      margin: 5px 0 0;
-      white-space: pre-wrap;
-      line-height: 1.4;
-    }
-
-    #messages.bubbles-rounded .message-body {
-      border-radius: 22px;
-    }
-
-    #messages.bubbles-square .message-body {
-      border-radius: 4px;
-    }
-
-    .controls {
-      padding: 12px;
-      border-top: 1px solid var(--border);
-    }
-
-    #profileLine {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      margin-bottom: 8px;
-    }
-
-    #profileLine .avatar {
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-    }
-
-    form {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    #messageInput { flex: 1; }
-
-    @media (max-width: 480px) {
-      body { padding: 6px; }
-
-      .chat {
-        height: 94vh;
-        min-height: 350px;
-        border-radius: 12px;
-      }
-
-      header { padding: 13px; }
-      h1 { font-size: 21px; }
-      #messages { padding: 12px; }
-      .controls { padding: 9px; }
-      form { gap: 6px; }
-      form button { padding: 0 12px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Chat Público</title>
+<style>
+*{box-sizing:border-box}
+:root{--accent:#6878f5;--page:#10131c;--panel:#1b2030;--header:#242b40;--border:#343b50;--text:#f1f5f9;--muted:#aab5ca;--input-bg:#101522;--bubble:#292f43}
+body.light{--page:#edf1f8;--panel:#fff;--header:#e1e8f5;--border:#ccd4e3;--text:#20283a;--muted:#5c667a;--input-bg:#fff;--bubble:#e9edf7}
+body{margin:0;padding:12px;background:var(--page);color:var(--text);font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh}
+.chat{width:100%;max-width:650px;height:94vh;min-height:400px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+header{padding:15px;background:var(--header)}
+h1{margin:0 0 6px;font-size:23px}
+header p{margin:0;color:var(--muted)}
+#status{font-size:13px;margin-top:8px;color:var(--muted);overflow-wrap:anywhere}
+#status.error{color:#ff7777}
+.top-actions,.room-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button,input,select{font:inherit}
+button{padding:10px 12px;border:0;border-radius:9px;background:var(--accent);color:white;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+button.secondary{background:var(--bubble);color:var(--text);border:1px solid var(--border)}
+input,select{min-width:0;width:100%;padding:11px;border:1px solid var(--border);border-radius:9px;background:var(--input-bg);color:var(--text)}
+input[type=color]{height:44px;padding:4px}
+input[type=file]{font-size:13px}
+#settings{padding:14px;background:var(--panel);border-bottom:1px solid var(--border);display:grid;gap:12px;max-height:35vh;overflow-y:auto}
+#settings[hidden]{display:none}
+.setting{display:grid;gap:6px}
+.setting label,.setting-title{font-size:14px;font-weight:bold}
+.setting small{color:var(--muted);line-height:1.4}
+.profile-preview{display:flex;align-items:center;gap:12px}
+.avatar{width:38px;height:38px;min-width:38px;border-radius:50%;object-fit:cover;background:var(--accent);color:white;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;overflow:hidden}
+.avatar.large{width:64px;height:64px;min-width:64px;font-size:20px}
+#roomPanel{padding:12px;border-bottom:1px solid var(--border);display:grid;gap:9px}
+#roomPanel h2{font-size:16px;margin:0}
+#roomInfo{padding:10px;background:var(--bubble);border:1px solid var(--border);border-radius:10px;overflow-wrap:anywhere}
+#roomCode{font-size:22px;letter-spacing:3px;font-weight:bold;color:var(--accent)}
+#roomList{display:flex;gap:6px;flex-wrap:wrap}
+.room-chip{font-size:12px;padding:7px 9px}
+#messages{flex:1;min-height:0;overflow-y:auto;padding:16px}
+#messages.bg-gradient{background-image:linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,transparent),transparent 65%)}
+#messages.bg-dots{background-image:radial-gradient(color-mix(in srgb,var(--muted) 25%,transparent) 1px,transparent 1px);background-size:18px 18px}
+.message{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;overflow-wrap:anywhere}
+.message-body{min-width:0;max-width:calc(100% - 48px);padding:10px 12px;border-radius:12px;background:var(--bubble);border:1px solid var(--border)}
+.message strong{color:var(--accent);overflow-wrap:anywhere}
+.message p{margin:5px 0 0;white-space:pre-wrap;line-height:1.4}
+#messages.bubbles-rounded .message-body{border-radius:22px}
+#messages.bubbles-square .message-body{border-radius:4px}
+.controls{padding:12px;border-top:1px solid var(--border)}
+#profileLine{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+#profileLine .avatar{width:32px;height:32px;min-width:32px}
+form{display:flex;gap:8px;margin-top:8px}
+#messageInput{flex:1}
+@media(max-width:480px){
+body{padding:5px}
+.chat{height:96vh;min-height:350px;border-radius:12px}
+header{padding:12px}
+h1{font-size:21px}
+#messages{padding:10px}
+.controls{padding:9px}
+form{gap:6px}
+form button{padding:0 10px}
+}
+</style>
 </head>
-
 <body>
-  <main class="chat">
-    <header>
-      <h1>💬 Mi Chat</h1>
-      <p>Un lugar para hablar con todos</p>
-      <div id="status">Conectando...</div>
+<main class="chat">
+<header>
+<h1>💬 Mi Chat</h1>
+<p>Un lugar para hablar con todos</p>
+<div id="status">Conectando...</div>
+<div class="top-actions">
+<button id="themeButton" type="button">☀️ Modo claro</button>
+<button id="settingsButton" class="secondary" type="button" aria-expanded="false">⚙️ Personalizar</button>
+</div>
+</header>
 
-      <div class="top-actions">
-        <button id="themeButton" type="button">
-          ☀️ Modo claro
-        </button>
+<section id="settings" hidden>
+<div class="setting">
+<span class="setting-title">Tu perfil</span>
+<div class="profile-preview">
+<img id="profilePreview" class="avatar large" alt="Vista previa">
+<div><strong id="profileName">Tu nombre</strong><small style="display:block">Así te verán los demás.</small></div>
+</div>
+</div>
+<div class="setting">
+<label for="photoInput">📸 Foto de perfil</label>
+<input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp">
+<small>JPG, PNG o WebP. Máximo 5 MB. Se reduce automáticamente.</small>
+<button id="removePhoto" type="button" class="secondary">Quitar foto</button>
+</div>
+<div class="setting"><label for="colorInput">🎨 Color principal</label><input id="colorInput" type="color" value="#6878f5"></div>
+<div class="setting">
+<label for="backgroundSelect">🖼️ Fondo del chat</label>
+<select id="backgroundSelect"><option value="plain">Simple</option><option value="gradient">Degradado</option><option value="dots">Puntos</option></select>
+</div>
+<div class="setting">
+<label for="bubbleSelect">💬 Estilo de burbujas</label>
+<select id="bubbleSelect"><option value="normal">Normal</option><option value="rounded">Redondeadas</option><option value="square">Cuadradas</option></select>
+</div>
+<button id="resetSettings" type="button" class="secondary">Restablecer personalización</button>
+</section>
 
-        <button id="settingsButton" class="secondary"
-          type="button" aria-expanded="false">
-          ⚙️ Personalizar
-        </button>
-      </div>
-    </header>
+<section id="roomPanel">
+<h2>🏠 Salas del chat</h2>
+<div id="roomInfo">
+<div id="roomName">🌎 Sala global</div>
+<div>Código: <strong id="roomCode">GLOBAL</strong></div>
+</div>
+<div class="room-actions">
+<button id="globalButton" type="button" class="secondary">🌎 Sala global</button>
+<button id="createRoomButton" type="button">➕ Crear sala</button>
+</div>
+<div class="setting">
+<label for="joinCode">🔑 Código de sala (8 dígitos)</label>
+<input id="joinCode" type="text" inputmode="numeric" maxlength="8" placeholder="Ej.: 58310472">
+<button id="joinRoomButton" type="button">Unirse a una sala</button>
+</div>
+<div class="setting">
+<strong>Salas disponibles</strong>
+<small>Elegí una sala pública para entrar.</small>
+<div id="roomList"></div>
+</div>
+</section>
 
-    <section id="settings" hidden>
-      <div class="setting">
-        <span class="setting-title">Tu perfil</span>
+<section id="messages" aria-live="polite"></section>
 
-        <div class="profile-preview">
-          <img id="profilePreview" class="avatar large"
-            alt="Vista previa de tu foto de perfil">
+<div class="controls">
+<div id="profileLine">
+<img id="currentAvatar" class="avatar" alt="Tu foto de perfil">
+<input id="username" maxlength="24" placeholder="Tu nombre" autocomplete="nickname">
+</div>
+<form id="chatForm">
+<input id="messageInput" maxlength="500" placeholder="Escribí un mensaje..." autocomplete="off" required>
+<button id="sendButton" type="submit">Enviar</button>
+</form>
+</div>
+</main>
 
-          <div>
-            <strong id="profileName">Tu nombre</strong>
-            <small style="display:block">
-              Así te verán los demás en tus mensajes nuevos.
-            </small>
-          </div>
-        </div>
-      </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL_SUPABASE="https://xluskazgonjpchcgdzii.supabase.co";
+const CLAVE_PUBLICA="sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
 
-      <div class="setting">
-        <label for="photoInput">📸 Foto de perfil</label>
+const $=id=>document.getElementById(id);
+const statusBox=$("status");
+const messagesBox=$("messages");
+const nameInput=$("username");
+const input=$("messageInput");
+const form=$("chatForm");
+const sendButton=$("sendButton");
+const settings=$("settings");
+const settingsButton=$("settingsButton");
+const themeButton=$("themeButton");
+const colorInput=$("colorInput");
+const backgroundSelect=$("backgroundSelect");
+const bubbleSelect=$("bubbleSelect");
+const photoInput=$("photoInput");
+const profilePreview=$("profilePreview");
+const currentAvatar=$("currentAvatar");
+const profileName=$("profileName");
 
-        <input id="photoInput" type="file"
-          accept="image/jpeg,image/png,image/webp">
+const DEFAULT_AVATAR="data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(
+'<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="40" fill="#6878f5"/><text x="40" y="53" text-anchor="middle" font-size="38" fill="white">?</text></svg>'
+);
 
-        <small>
-          Formatos JPG, PNG y WebP. Máximo 5 MB.
-          La foto se reduce automáticamente y se guarda
-          junto con tus mensajes.
-        </small>
+const AVATAR_SIZE=128;
+const MAX_AVATAR_LENGTH=60000;
+let profilePhoto="";
+let client=null;
+let channel=null;
+let currentRoom="GLOBAL";
+let currentRoomName="Sala global";
+let loadingMessages=false;
+let roomSwitch=0;
 
-        <button id="removePhoto" type="button"
-          class="secondary">Quitar foto</button>
-      </div>
+function readLocal(key,fallback=""){
+  try{return localStorage.getItem(key)??fallback}catch(e){return fallback}
+}
+function saveLocal(key,value){
+  try{localStorage.setItem(key,value);return true}catch(e){return false}
+}
+function removeLocal(key){
+  try{localStorage.removeItem(key)}catch(e){}
+}
+function status(text,error=false){
+  statusBox.textContent=text;
+  statusBox.classList.toggle("error",error);
+}
+function isValidAvatar(value){
+  return typeof value==="string"&&value.startsWith("data:image/jpeg;base64,")&&value.length<=MAX_AVATAR_LENGTH;
+}
+function setAvatar(element,name,photo){
+  element.onerror=()=>{
+    element.onerror=null;
+    element.src=DEFAULT_AVATAR;
+  };
+  if(isValidAvatar(photo)){
+    element.src=photo;
+    element.alt="Foto de perfil de "+(name||"usuario");
+  }else{
+    element.src=DEFAULT_AVATAR;
+    element.alt="Avatar predeterminado de "+(name||"usuario");
+  }
+}
+function updateProfile(){
+  const name=nameInput.value.trim()||"Tu nombre";
+  profileName.textContent=name;
+  setAvatar(profilePreview,name,profilePhoto);
+  setAvatar(currentAvatar,name,profilePhoto);
+}
 
-      <div class="setting">
-        <label for="colorInput">🎨 Color principal</label>
-        <input id="colorInput" type="color" value="#6878f5">
-      </div>
+nameInput.value=readLocal("chatName");
+profilePhoto=readLocal("chatProfilePhoto");
 
-      <div class="setting">
-        <label for="backgroundSelect">🖼️ Fondo del chat</label>
+function applySettings(){
+  const theme=readLocal("chatTheme","dark");
+  const color=readLocal("chatColor","#6878f5");
+  const background=readLocal("chatBackground","plain");
+  const bubbles=readLocal("chatBubbles","normal");
 
-        <select id="backgroundSelect">
-          <option value="plain">Simple</option>
-          <option value="gradient">Degradado</option>
-          <option value="dots">Puntos</option>
-        </select>
-      </div>
+  document.body.classList.toggle("light",theme==="light");
+  themeButton.textContent=theme==="light"?"🌙 Modo oscuro":"☀️ Modo claro";
+  document.documentElement.style.setProperty("--accent",color);
 
-      <div class="setting">
-        <label for="bubbleSelect">💬 Estilo de burbujas</label>
+  messagesBox.classList.remove("bg-gradient","bg-dots","bubbles-rounded","bubbles-square");
+  if(background==="gradient"||background==="dots")messagesBox.classList.add("bg-"+background);
+  if(bubbles==="rounded")messagesBox.classList.add("bubbles-rounded");
+  if(bubbles==="square")messagesBox.classList.add("bubbles-square");
 
-        <select id="bubbleSelect">
-          <option value="normal">Normal</option>
-          <option value="rounded">Redondeadas</option>
-          <option value="square">Cuadradas</option>
-        </select>
-      </div>
+  colorInput.value=color;
+  backgroundSelect.value=background;
+  bubbleSelect.value=bubbles;
+}
+themeButton.addEventListener("click",()=>{
+  saveLocal("chatTheme",document.body.classList.contains("light")?"dark":"light");
+  applySettings();
+});
+settingsButton.addEventListener("click",()=>{
+  const opening=settings.hidden;
+  settings.hidden=!opening;
+  settingsButton.setAttribute("aria-expanded",String(opening));
+});
+colorInput.addEventListener("input",()=>{
+  saveLocal("chatColor",colorInput.value);applySettings();
+});
+backgroundSelect.addEventListener("change",()=>{
+  saveLocal("chatBackground",backgroundSelect.value);applySettings();
+});
+bubbleSelect.addEventListener("change",()=>{
+  saveLocal("chatBubbles",bubbleSelect.value);applySettings();
+});
+nameInput.addEventListener("input",updateProfile);
+nameInput.addEventListener("change",()=>{
+  saveLocal("chatName",nameInput.value.trim());updateProfile();
+});
 
-      <button id="resetSettings" type="button"
-        class="secondary">Restablecer personalización</button>
-    </section>
-
-    <section id="messages" aria-live="polite"></section>
-
-    <div class="controls">
-      <div id="profileLine">
-        <img id="currentAvatar" class="avatar"
-          alt="Tu foto de perfil">
-
-        <input id="username" maxlength="24"
-          placeholder="Tu nombre" autocomplete="nickname">
-      </div>
-
-      <form id="chatForm">
-        <input id="messageInput" maxlength="500"
-          placeholder="Escribí un mensaje..."
-          autocomplete="off" required>
-
-        <button id="sendButton" type="submit">Enviar</button>
-      </form>
-    </div>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <script>
-    const URL_SUPABASE =
-      "https://xluskazgonjpchcgdzii.supabase.co";
-
-    const CLAVE_PUBLICA =
-      "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
-
-    const statusBox = document.getElementById("status");
-    const messagesBox = document.getElementById("messages");
-    const nameInput = document.getElementById("username");
-    const input = document.getElementById("messageInput");
-    const form = document.getElementById("chatForm");
-    const sendButton = document.getElementById("sendButton");
-
-    const settings = document.getElementById("settings");
-    const settingsButton = document.getElementById("settingsButton");
-    const themeButton = document.getElementById("themeButton");
-    const colorInput = document.getElementById("colorInput");
-    const backgroundSelect =
-      document.getElementById("backgroundSelect");
-    const bubbleSelect = document.getElementById("bubbleSelect");
-    const photoInput = document.getElementById("photoInput");
-    const profilePreview = document.getElementById("profilePreview");
-    const currentAvatar = document.getElementById("currentAvatar");
-    const profileName = document.getElementById("profileName");
-
-    const DEFAULT_AVATAR =
-      "data:image/svg+xml;charset=UTF-8," +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">' +
-        '<rect width="80" height="80" rx="40" fill="#6878f5"/>' +
-        '<text x="40" y="53" text-anchor="middle" font-size="38" fill="white">?</text>' +
-        '</svg>'
-      );
-
-    const AVATAR_SIZE = 128;
-    const MAX_AVATAR_LENGTH = 60000;
-
-    let profilePhoto = "";
-    let client = null;
-    let channel = null;
-    let loadingMessages = false;
-
-    // Evita que los errores de almacenamiento local rompan el chat.
-    function readLocal(key, fallback = "") {
-      try {
-        return localStorage.getItem(key) ?? fallback;
-      } catch (error) {
-        console.warn("No se pudo leer el almacenamiento local.", error);
-        return fallback;
+photoInput.addEventListener("change",()=>{
+  const file=photoInput.files[0];
+  if(!file)return;
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+    status("Usá una imagen JPG, PNG o WebP.",true);photoInput.value="";return;
+  }
+  if(file.size>5*1024*1024){
+    status("La imagen supera el límite de 5 MB.",true);photoInput.value="";return;
+  }
+  status("Procesando foto...");
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const image=new Image();
+    image.onload=()=>{
+      const canvas=document.createElement("canvas");
+      canvas.width=AVATAR_SIZE;canvas.height=AVATAR_SIZE;
+      const side=Math.min(image.width,image.height);
+      const sx=(image.width-side)/2,sy=(image.height-side)/2;
+      const context=canvas.getContext("2d");
+      if(!context){status("No se pudo procesar la imagen.",true);return}
+      context.fillStyle="#fff";
+      context.fillRect(0,0,AVATAR_SIZE,AVATAR_SIZE);
+      context.drawImage(image,sx,sy,side,side,0,0,AVATAR_SIZE,AVATAR_SIZE);
+      const compressed=canvas.toDataURL("image/jpeg",0.75);
+      if(!isValidAvatar(compressed)){
+        status("La foto quedó demasiado pesada. Probá otra.",true);return;
       }
+      if(!saveLocal("chatProfilePhoto",compressed)){
+        status("No se pudo guardar la foto en este navegador.",true);return;
+      }
+      profilePhoto=compressed;updateProfile();photoInput.value="";
+      status("Foto guardada. Se incluirá en tus próximos mensajes.");
+    };
+    image.onerror=()=>status("No se pudo abrir la imagen.",true);
+    image.src=reader.result;
+  };
+  reader.onerror=()=>status("No se pudo leer el archivo.",true);
+  reader.readAsDataURL(file);
+});
+$("removePhoto").addEventListener("click",()=>{
+  removeLocal("chatProfilePhoto");profilePhoto="";photoInput.value="";
+  updateProfile();status("Foto quitada. Tus próximos mensajes irán sin foto.");
+});
+$("resetSettings").addEventListener("click",()=>{
+  ["chatTheme","chatColor","chatBackground","chatBubbles"].forEach(removeLocal);
+  applySettings();status("Personalización restablecida.");
+});
+
+// Cada mensaje se muestra únicamente en la sala seleccionada.
+function showMessage(message){
+  if(!message||message.id==null)return;
+  if((message.room_code||"GLOBAL")!==currentRoom)return;
+
+  if([...messagesBox.children].some(el=>el.dataset.id===String(message.id)))return;
+
+  const item=document.createElement("article");
+  item.className="message";
+  item.dataset.id=String(message.id);
+
+  const avatar=document.createElement("img");
+  avatar.className="avatar";
+  setAvatar(avatar,message.username,message.avatar);
+
+  const body=document.createElement("div");
+  body.className="message-body";
+  const name=document.createElement("strong");
+  name.textContent=message.username||"Usuario";
+  const content=document.createElement("p");
+  content.textContent=message.content||"";
+
+  body.append(name,content);
+  item.append(avatar,body);
+  messagesBox.appendChild(item);
+  messagesBox.scrollTop=messagesBox.scrollHeight;
+}
+
+async function loadMessages(){
+  if(!client)return;
+  const mySwitch=roomSwitch;
+  loadingMessages=true;
+  status("Recuperando mensajes de "+currentRoomName+"...");
+  messagesBox.replaceChildren();
+
+  try{
+    const {data,error}=await client
+      .from("messages")
+      .select("id, username, content, avatar, created_at, room_code")
+      .eq("room_code",currentRoom)
+      .order("created_at",{ascending:false})
+      .limit(100);
+
+    if(mySwitch!==roomSwitch)return;
+    if(error){
+      status("No se pudieron cargar los mensajes: "+error.message,true);
+      return;
     }
 
-    function saveLocal(key, value) {
-      try {
-        localStorage.setItem(key, value);
-        return true;
-      } catch (error) {
-        console.error("No se pudo guardar " + key, error);
-        return false;
-      }
+    (data||[]).reverse().forEach(showMessage);
+    status((data&&data.length)
+      ?"Se cargaron "+data.length+" mensajes de "+currentRoomName+"."
+      :"Sala lista. Todavía no hay mensajes.");
+  }catch(error){
+    if(mySwitch===roomSwitch)status("Error al cargar: "+error.message,true);
+  }finally{
+    loadingMessages=false;
+  }
+}
+
+function updateRoomDisplay(){
+  $("roomName").textContent=currentRoom==="GLOBAL"?"🌎 Sala global":"💬 "+currentRoomName;
+  $("roomCode").textContent=currentRoom;
+  document.title=currentRoom==="GLOBAL"?"Mi Chat Público":"Mi Chat - "+currentRoomName;
+}
+
+async function switchRoom(code,name){
+  if(code!=="GLOBAL"&&!/^\d{8}$/.test(code)){
+    status("El código de la sala debe tener 8 dígitos.",true);return;
+  }
+  currentRoom=code;
+  currentRoomName=name|| (code==="GLOBAL"?"Sala global":"Sala "+code);
+  roomSwitch++;
+  saveLocal("chatCurrentRoom",code);
+  saveLocal("chatCurrentRoomName",currentRoomName);
+  updateRoomDisplay();
+
+  if(client)await loadMessages();
+}
+
+$("globalButton").addEventListener("click",()=>switchRoom("GLOBAL","Sala global"));
+
+async function loadRooms(){
+  if(!client)return;
+  const list=$("roomList");
+  list.replaceChildren();
+
+  const {data,error}=await client
+    .from("chat_rooms")
+    .select("code,name")
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){
+    status("No se pudieron listar las salas: "+error.message,true);return;
+  }
+  if(!data||!data.length){
+    const note=document.createElement("small");
+    note.textContent="Todavía no hay salas creadas.";
+    list.appendChild(note);return;
+  }
+  data.forEach(room=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="secondary room-chip";
+    button.textContent=room.name+" · "+room.code;
+    button.addEventListener("click",()=>switchRoom(room.code,room.name));
+    list.appendChild(button);
+  });
+}
+
+// Genera un número aleatorio de 8 dígitos.
+function generateRoomCode(){
+  const values=new Uint32Array(1);
+  const max=90000000;
+  const limit=Math.floor(4294967296/max)*max;
+  let number;
+  do{
+    crypto.getRandomValues(values);
+    number=values[0];
+  }while(number>=limit);
+  return String(10000000+(number%max));
+}
+
+$("createRoomButton").addEventListener("click",async()=>{
+  if(!client){status("El chat todavía no está conectado.",true);return}
+  const rawName=prompt("¿Cómo querés llamar a la sala?");
+  if(rawName===null)return;
+  const name=rawName.trim().slice(0,40);
+  if(!name){status("Escribí un nombre para la sala.",true);return}
+
+  const button=$("createRoomButton");
+  button.disabled=true;
+  status("Creando sala...");
+
+  try{
+    // La restricción UNIQUE de Supabase evita códigos repetidos.
+    // Si hay una colisión excepcional, se genera otro código.
+    let created=null;
+    for(let attempt=0;attempt<10;attempt++){
+      const code=generateRoomCode();
+      const {data,error}=await client
+        .from("chat_rooms")
+        .insert({code,name})
+        .select("code,name")
+        .single();
+
+      if(!error){created=data;break}
+      if(error.code==="23505")continue;
+      throw error;
     }
+    if(!created)throw new Error("No se pudo obtener un código único. Intentá de nuevo.");
 
-    function removeLocal(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (error) {
-        console.warn("No se pudo borrar " + key, error);
-      }
+    await loadRooms();
+    await switchRoom(created.code,created.name);
+    $("joinCode").value=created.code;
+    status("¡Sala creada! Compartí el código "+created.code+" con tus amigos.");
+    alert("¡Sala creada!\n\nNombre: "+created.name+"\nCódigo: "+created.code+"\n\nPasales este código a tus amigos para que se unan.");
+  }catch(error){
+    status("No se pudo crear la sala: "+error.message,true);
+  }finally{
+    button.disabled=false;
+  }
+});
+
+$("joinRoomButton").addEventListener("click",async()=>{
+  if(!client){status("El chat todavía no está conectado.",true);return}
+  const code=$("joinCode").value.trim();
+
+  if(!/^\d{8}$/.test(code)){
+    status("Ingresá un código válido de exactamente 8 dígitos.",true);return;
+  }
+
+  status("Buscando sala...");
+  try{
+    const {data,error}=await client
+      .from("chat_rooms")
+      .select("code,name")
+      .eq("code",code)
+      .maybeSingle();
+
+    if(error)throw error;
+    if(!data){
+      status("No existe una sala con ese código. Revisalo e intentá de nuevo.",true);
+      return;
     }
-
-    nameInput.value = readLocal("chatName");
-
-    profilePhoto = readLocal("chatProfilePhoto");
-
-    function status(text, error = false) {
-      statusBox.textContent = text;
-      statusBox.classList.toggle("error", error);
-    }
-
-    function isValidAvatar(value) {
-      return (
-        typeof value === "string" &&
-        value.startsWith("data:image/jpeg;base64,") &&
-        value.length <= MAX_AVATAR_LENGTH
-      );
-    }
-
-    function setAvatar(element, name, photo) {
-      element.onerror = () => {
-        element.onerror = null;
-        element.src = DEFAULT_AVATAR;
-      };
-
-      if (isValidAvatar(photo)) {
-        element.src = photo;
-        element.alt = "Foto de perfil de " + (name || "usuario");
-      } else {
-        element.src = DEFAULT_AVATAR;
-        element.alt = "Avatar predeterminado de " + (name || "usuario");
-      }
-    }
-
-    function updateProfile() {
-      const name = nameInput.value.trim() || "Tu nombre";
-
-      profileName.textContent = name;
-      setAvatar(profilePreview, name, profilePhoto);
-      setAvatar(currentAvatar, name, profilePhoto);
-    }
-
-    function applySettings() {
-      const theme = readLocal("chatTheme", "dark");
-      const color = readLocal("chatColor", "#6878f5");
-      const background = readLocal("chatBackground", "plain");
-      const bubbles = readLocal("chatBubbles", "normal");
-
-      document.body.classList.toggle("light", theme === "light");
-
-      themeButton.textContent =
-        theme === "light" ? "🌙 Modo oscuro" : "☀️ Modo claro";
-
-      document.documentElement.style.setProperty("--accent", color);
-
-      messagesBox.classList.remove(
-        "bg-gradient", "bg-dots",
-        "bubbles-rounded", "bubbles-square"
-      );
-
-      if (background === "gradient" || background === "dots") {
-        messagesBox.classList.add("bg-" + background);
-      }
-
-      if (bubbles === "rounded") {
-        messagesBox.classList.add("bubbles-rounded");
-      } else if (bubbles === "square") {
-        messagesBox.classList.add("bubbles-square");
-      }
-
-      colorInput.value = color;
-      backgroundSelect.value = background;
-      bubbleSelect.value = bubbles;
-    }
-
-    themeButton.addEventListener("click", () => {
-      const nextTheme =
-        document.body.classList.contains("light") ? "dark" : "light";
-
-      saveLocal("chatTheme", nextTheme);
-      applySettings();
-    });
-
-    settingsButton.addEventListener("click", () => {
-      const opening = settings.hidden;
-      settings.hidden = !opening;
-
-      settingsButton.setAttribute("aria-expanded", String(opening));
-    });
-
-    colorInput.addEventListener("input", () => {
-      saveLocal("chatColor", colorInput.value);
-      applySettings();
-    });
-
-    backgroundSelect.addEventListener("change", () => {
-      saveLocal("chatBackground", backgroundSelect.value);
-      applySettings();
-    });
-
-    bubbleSelect.addEventListener("change", () => {
-      saveLocal("chatBubbles", bubbleSelect.value);
-      applySettings();
-    });
-
-    nameInput.addEventListener("input", updateProfile);
-
-    nameInput.addEventListener("change", () => {
-      saveLocal("chatName", nameInput.value.trim());
-      updateProfile();
-    });
-
-    photoInput.addEventListener("change", () => {
-      const file = photoInput.files[0];
-      if (!file) return;
-
-      const allowedTypes = [
-        "image/jpeg", "image/png", "image/webp"
-      ];
-
-      if (!allowedTypes.includes(file.type)) {
-        status("Usá una imagen JPG, PNG o WebP.", true);
-        photoInput.value = "";
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        status("La imagen supera el límite de 5 MB.", true);
-        photoInput.value = "";
-        return;
-      }
-
-      status("Procesando foto...");
-
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const image = new Image();
-
-        image.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = AVATAR_SIZE;
-          canvas.height = AVATAR_SIZE;
-
-          const side = Math.min(image.width, image.height);
-          const sx = (image.width - side) / 2;
-          const sy = (image.height - side) / 2;
-
-          const context = canvas.getContext("2d");
-
-          if (!context) {
-            status("No se pudo procesar la imagen.", true);
-            return;
-          }
-
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
-
-          context.drawImage(
-            image, sx, sy, side, side,
-            0, 0, AVATAR_SIZE, AVATAR_SIZE
-          );
-
-          const compressed = canvas.toDataURL("image/jpeg", 0.75);
-
-          if (!isValidAvatar(compressed)) {
-            status("La foto quedó demasiado pesada. Probá otra.", true);
-            return;
-          }
-
-          // Se conserva la foto anterior si no se puede guardar la nueva.
-          if (!saveLocal("chatProfilePhoto", compressed)) {
-            status(
-              "No se pudo guardar la foto en este navegador. " +
-              "Liberá espacio y volvé a intentarlo.",
-              true
-            );
-            return;
-          }
-
-          profilePhoto = compressed;
-          updateProfile();
-          photoInput.value = "";
-
-          status(
-            "Foto guardada. Se incluirá en tus próximos mensajes."
-          );
-        };
-
-        image.onerror = () => {
-          status("No se pudo abrir la imagen.", true);
-        };
-
-        image.src = reader.result;
-      };
-
-      reader.onerror = () => {
-        status("No se pudo leer el archivo.", true);
-      };
-
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById("removePhoto").addEventListener("click", () => {
-      removeLocal("chatProfilePhoto");
-
-      profilePhoto = "";
-      photoInput.value = "";
-
-      updateProfile();
-
-      status(
-        "Foto quitada. Tus próximos mensajes irán sin foto."
-      );
-    });
-
-    document.getElementById("resetSettings").addEventListener("click", () => {
-      [
-        "chatTheme",
-        "chatColor",
-        "chatBackground",
-        "chatBubbles"
-      ].forEach(removeLocal);
-
-      applySettings();
-      status("Personalización restablecida.");
-    });
-
-    // Evita duplicar mensajes recibidos por la carga inicial y Realtime.
-    function showMessage(message) {
-      if (!message || message.id == null) return;
-
-      const existing = document.querySelector(
-        "#messages [data-id='" +
-        CSS.escape(String(message.id)) + "']"
-      );
-
-      if (existing) return;
-
-      const item = document.createElement("article");
-      item.className = "message";
-      item.dataset.id = String(message.id);
-
-      const avatar = document.createElement("img");
-      avatar.className = "avatar";
-
-      setAvatar(avatar, message.username, message.avatar);
-
-      const body = document.createElement("div");
-      body.className = "message-body";
-
-      const name = document.createElement("strong");
-      name.textContent = message.username || "Usuario";
-
-      const content = document.createElement("p");
-      content.textContent = message.content || "";
-
-      body.append(name, content);
-      item.append(avatar, body);
-      messagesBox.appendChild(item);
-
-      messagesBox.scrollTop = messagesBox.scrollHeight;
-    }
-
-    async function loadMessages() {
-      if (loadingMessages) return;
-
-      loadingMessages = true;
-
-      try {
-        status("Recuperando mensajes guardados...");
-
-        const { data, error } = await client
-          .from("messages")
-          .select("id, username, content, avatar, created_at")
-          .order("created_at", { ascending: false })
-          .limit(100);
-
-        if (error) {
-          status(
-            "No se pudieron cargar los mensajes: " +
-            error.message +
-            ". Revisá los permisos de lectura de Supabase.",
-            true
-          );
-          return;
-        }
-
-        // Se muestran del más antiguo al más reciente.
-        (data || []).reverse().forEach(showMessage);
-
-        if (!data || data.length === 0) {
-          status(
-            "Conectado, pero Supabase no devolvió mensajes. " +
-            "Comprobá si la tabla tiene datos y permite leerlos."
-          );
-        } else {
-          status(
-            "Se recuperaron " + data.length +
-            " mensajes guardados."
-          );
-        }
-      } finally {
-        loadingMessages = false;
-      }
-    }
-
-    async function start() {
-      if (!window.supabase) {
-        status(
-          "No se pudo cargar Supabase. Revisá tu conexión e intentá recargar.",
-          true
-        );
-        return;
-      }
-
-      if (!URL_SUPABASE || !CLAVE_PUBLICA.startsWith("sb_publishable_")) {
-        status("Revisá la URL y la clave pública de Supabase.", true);
-        return;
-      }
-
-      client = window.supabase.createClient(
-        URL_SUPABASE,
-        CLAVE_PUBLICA
-      );
-
-      // Carga inicial desde la base de datos.
-      await loadMessages();
-
-      // Escucha los mensajes nuevos guardados en Supabase.
-      channel = client
-        .channel("chat-publico")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages"
-          },
-          payload => {
-            showMessage(payload.new);
-            status("Mensaje nuevo recibido.");
-          }
-        )
-        .subscribe(state => {
-          if (state === "SUBSCRIBED") {
-            status("Conectado. ¡Ya podés hablar!");
-          } else if (
-            state === "CHANNEL_ERROR" ||
-            state === "TIMED_OUT" ||
-            state === "CLOSED"
-          ) {
-            status(
-              "Error en tiempo real: " + state +
-              ". Los mensajes guardados se pueden recuperar al recargar.",
-              true
-            );
-          }
-        });
-
-      // Solo se registra una vez el evento de envío.
-      form.addEventListener("submit", sendMessage);
-    }
-
-    async function sendMessage(event) {
-      event.preventDefault();
-
-      if (!client) {
-        status("El chat todavía no está conectado.", true);
-        return;
-      }
-
-      const username = nameInput.value.trim();
-      const content = input.value.trim();
-
-      if (!username || !content) {
-        status("Escribí tu nombre y un mensaje.", true);
-        return;
-      }
-
-      const row = { username, content };
-
-      if (isValidAvatar(profilePhoto)) {
-        row.avatar = profilePhoto;
-      }
-
-      sendButton.disabled = true;
-
-      try {
-        saveLocal("chatName", username);
-        updateProfile();
-
-        // Inserta el mensaje en la base de datos.
-        const { error } = await client
-          .from("messages")
-          .insert(row);
-
-        if (error) {
-          status(
-            "No se pudo guardar el mensaje: " +
-            error.message +
-            ". Revisá los permisos de escritura de Supabase.",
-            true
-          );
-          return;
-        }
-
-        input.value = "";
-
-        // Recupera el mensaje desde la base de datos.
-        // También funciona si Realtime tarda en responder.
-        const { data, error: reloadError } = await client
-          .from("messages")
-          .select("id, username, content, avatar, created_at")
-          .order("created_at", { ascending: false })
-          .limit(100);
-
-        if (!reloadError && data) {
-          data.reverse().forEach(showMessage);
-        }
-
-        input.focus();
-        status("Mensaje guardado en Supabase.");
-      } catch (error) {
-        status("Error al enviar: " + error.message, true);
-      } finally {
-        sendButton.disabled = false;
-      }
-    }
-
-    applySettings();
+    await switchRoom(data.code,data.name);
+    status("Te uniste a "+data.name+".");
+  }catch(error){
+    status("No se pudo buscar la sala: "+error.message,true);
+  }
+});
+
+$("joinCode").addEventListener("input",()=>{
+  $("joinCode").value=$("joinCode").value.replace(/\D/g,"").slice(0,8);
+});
+
+async function sendMessage(event){
+  event.preventDefault();
+  if(!client){status("El chat todavía no está conectado.",true);return}
+
+  const username=nameInput.value.trim();
+  const content=input.value.trim();
+
+  if(!username||!content){
+    status("Escribí tu nombre y un mensaje.",true);return;
+  }
+
+  const row={username,content,room_code:currentRoom};
+  if(isValidAvatar(profilePhoto))row.avatar=profilePhoto;
+
+  sendButton.disabled=true;
+  try{
+    saveLocal("chatName",username);
     updateProfile();
 
-    start().catch(error => {
-      status("Error al iniciar: " + error.message, true);
-      console.error("Error al iniciar el chat:", error);
+    const {error}=await client.from("messages").insert(row);
+    if(error){
+      status("No se pudo guardar el mensaje: "+error.message,true);return;
+    }
+
+    input.value="";
+    // Recuperación adicional por si Realtime tarda en llegar.
+    const {data,error:reloadError}=await client
+      .from("messages")
+      .select("id, username, content, avatar, created_at, room_code")
+      .eq("room_code",currentRoom)
+      .order("created_at",{ascending:false})
+      .limit(100);
+
+    if(!reloadError&&data)data.reverse().forEach(showMessage);
+    input.focus();
+    status("Mensaje guardado en "+currentRoomName+".");
+  }catch(error){
+    status("Error al enviar: "+error.message,true);
+  }finally{
+    sendButton.disabled=false;
+  }
+}
+
+async function start(){
+  if(!window.supabase){
+    status("No se pudo cargar Supabase. Revisá tu conexión.",true);return;
+  }
+  if(!URL_SUPABASE||!CLAVE_PUBLICA.startsWith("sb_publishable_")){
+    status("Revisá la URL y la clave pública de Supabase.",true);return;
+  }
+
+  client=window.supabase.createClient(URL_SUPABASE,CLAVE_PUBLICA);
+  form.addEventListener("submit",sendMessage);
+
+  // Restaura la última sala usada si todavía existe.
+  const savedRoom=readLocal("chatCurrentRoom","GLOBAL");
+  const savedName=readLocal("chatCurrentRoomName","Sala global");
+
+  if(savedRoom==="GLOBAL"){
+    currentRoom="GLOBAL";currentRoomName="Sala global";
+  }else if(/^\d{8}$/.test(savedRoom)){
+    const {data,error}=await client.from("chat_rooms")
+      .select("code,name").eq("code",savedRoom).maybeSingle();
+    if(!error&&data){
+      currentRoom=data.code;currentRoomName=data.name;
+    }else{
+      currentRoom="GLOBAL";currentRoomName="Sala global";
+    }
+  }
+
+  updateRoomDisplay();
+  await loadRooms();
+  await loadMessages();
+
+  // Realtime recibe nuevos mensajes de todas las salas,
+  // pero showMessage solo muestra los de la sala seleccionada.
+  channel=client.channel("chat-publico-salas")
+    .on("postgres_changes",{
+      event:"INSERT",schema:"public",table:"messages"
+    },payload=>{
+      if((payload.new.room_code||"GLOBAL")===currentRoom){
+        showMessage(payload.new);
+        status("Mensaje nuevo recibido.");
+      }
+    })
+    .subscribe(state=>{
+      if(state==="SUBSCRIBED"){
+        status("Conectado. Estás en "+currentRoomName+".");
+      }else if(state==="CHANNEL_ERROR"||state==="TIMED_OUT"||state==="CLOSED"){
+        status("Problema con la conexión en tiempo real: "+state+
+          ". Podés volver a cargar los mensajes.",true);
+      }
     });
-  </script>
+}
+
+applySettings();
+updateProfile();
+start().catch(error=>{
+  status("Error al iniciar el chat: "+error.message,true);
+  console.error(error);
+});
+</script>
 </body>
 </html>
