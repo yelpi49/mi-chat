@@ -9,7 +9,7 @@
 *{box-sizing:border-box}
 :root{--accent:#6878f5;--page:#10131c;--panel:#1b2030;--header:#242b40;--border:#343b50;--text:#f1f5f9;--muted:#aab5ca;--input-bg:#101522;--bubble:#292f43}
 body.light{--page:#edf1f8;--panel:#fff;--header:#e1e8f5;--border:#ccd4e3;--text:#20283a;--muted:#5c667a;--input-bg:#fff;--bubble:#e9edf7}
-body{margin:0;padding:16px;background:var(--page);color:var(--text);font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh;transition:background .2s,color .2s}
+body{margin:0;padding:16px;background:var(--page);color:var(--text);font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh}
 .chat{width:100%;max-width:650px;height:94vh;min-height:420px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden}
 header{padding:16px;background:var(--header)}
 h1{margin:0 0 6px;font-size:23px}
@@ -22,7 +22,7 @@ button{padding:10px 14px;border:0;border-radius:9px;background:var(--accent);col
 button:disabled{opacity:.5;cursor:wait}
 button.secondary{background:var(--bubble);color:var(--text);border:1px solid var(--border)}
 #settings{padding:14px;background:var(--panel);border-bottom:1px solid var(--border);display:grid;gap:12px;max-height:40vh;overflow-y:auto}
-#settings[hidden]{display:none}
+#settings[hidden], [hidden]{display:none!important}
 .setting{display:grid;gap:6px}
 .setting label,.setting-title{font-size:14px;font-weight:bold}
 .setting small,.hint{color:var(--muted);line-height:1.4;font-size:12px}
@@ -32,7 +32,7 @@ input[type=file]{font-size:13px}
 .profile-preview{display:flex;align-items:center;gap:12px}
 .avatar{width:38px;height:38px;min-width:38px;border-radius:50%;object-fit:cover;background:var(--accent);color:white;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;overflow:hidden}
 .avatar.large{width:64px;height:64px;min-width:64px;font-size:20px}
-#messages{flex:1;overflow-y:auto;padding:16px;background-color:transparent;background-image:none}
+#messages{flex:1;overflow-y:auto;padding:16px}
 #messages.bg-gradient{background-image:linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,transparent),transparent 65%)}
 #messages.bg-dots{background-image:radial-gradient(color-mix(in srgb,var(--muted) 25%,transparent) 1px,transparent 1px);background-size:18px 18px}
 .message{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;overflow-wrap:anywhere}
@@ -81,26 +81,23 @@ form button{padding:0 12px}
 <div class="setting">
 <span class="setting-title">Tu perfil</span>
 <div class="profile-preview">
-<img id="profilePreview" class="avatar large" alt="Vista previa de tu foto de perfil">
+<img id="profilePreview" class="avatar large" alt="Tu foto de perfil">
 <div>
 <strong id="profileName">Tu nombre</strong>
 <small style="display:block">Tu foto se comparte con los demás usuarios.</small>
 </div>
 </div>
 </div>
-
 <div class="setting">
 <label for="photoInput">📸 Foto de perfil</label>
 <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp">
 <small>JPG, PNG o WebP. Máximo 5 MB.</small>
 <button id="removePhoto" type="button" class="secondary">Quitar foto</button>
 </div>
-
 <div class="setting">
 <label for="colorInput">🎨 Color principal</label>
 <input id="colorInput" type="color" value="#6878f5">
 </div>
-
 <div class="setting">
 <label for="backgroundSelect">🖼️ Fondo del chat</label>
 <select id="backgroundSelect">
@@ -109,7 +106,6 @@ form button{padding:0 12px}
 <option value="dots">Puntos</option>
 </select>
 </div>
-
 <div class="setting">
 <label for="bubbleSelect">💬 Estilo de burbujas</label>
 <select id="bubbleSelect">
@@ -118,25 +114,21 @@ form button{padding:0 12px}
 <option value="square">Cuadradas</option>
 </select>
 </div>
-
 <button id="resetSettings" type="button" class="secondary">Restablecer personalización</button>
 </section>
 
 <section id="authPanel">
 <h2>🔐 Tu cuenta</h2>
 <div id="accountInfo">Iniciá sesión o creá una cuenta para participar.</div>
-
 <div id="authFields" class="auth-grid">
 <input id="emailInput" class="wide" type="email" placeholder="Correo electrónico" autocomplete="email">
 <input id="passwordInput" class="wide" type="password" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="current-password">
 <input id="signupName" class="wide" maxlength="24" placeholder="Nombre para mostrar (para registrarte)" autocomplete="nickname">
 </div>
-
 <div class="auth-actions" id="authButtons">
 <button id="loginButton" type="button">Iniciar sesión</button>
 <button id="signupButton" type="button" class="secondary">Crear cuenta</button>
 </div>
-
 <button id="logoutButton" type="button" class="secondary" hidden>Cerrar sesión</button>
 <div class="hint">Si el registro requiere confirmar el correo, revisá tu bandeja de entrada.</div>
 </section>
@@ -148,7 +140,6 @@ form button{padding:0 12px}
 <img id="currentAvatar" class="avatar" alt="Tu foto de perfil">
 <input id="username" maxlength="24" placeholder="Tu nombre" autocomplete="nickname" disabled>
 </div>
-
 <form id="chatForm">
 <input id="messageInput" maxlength="500" placeholder="Iniciá sesión para escribir..." autocomplete="off" required disabled>
 <button id="sendButton" type="submit" disabled>Enviar</button>
@@ -161,33 +152,32 @@ form button{padding:0 12px}
 const URL_SUPABASE = "https://xluskazgonjpchcgdzii.supabase.co";
 const CLAVE_PUBLICA = "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
 
-const statusBox = document.getElementById("status");
-const messagesBox = document.getElementById("messages");
-const nameInput = document.getElementById("username");
-const input = document.getElementById("messageInput");
-const form = document.getElementById("chatForm");
-const sendButton = document.getElementById("sendButton");
-
-const settings = document.getElementById("settings");
-const settingsButton = document.getElementById("settingsButton");
-const themeButton = document.getElementById("themeButton");
-const colorInput = document.getElementById("colorInput");
-const backgroundSelect = document.getElementById("backgroundSelect");
-const bubbleSelect = document.getElementById("bubbleSelect");
-const photoInput = document.getElementById("photoInput");
-const profilePreview = document.getElementById("profilePreview");
-const currentAvatar = document.getElementById("currentAvatar");
-const profileName = document.getElementById("profileName");
-
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
-const signupName = document.getElementById("signupName");
-const loginButton = document.getElementById("loginButton");
-const signupButton = document.getElementById("signupButton");
-const logoutButton = document.getElementById("logoutButton");
-const accountInfo = document.getElementById("accountInfo");
-const authFields = document.getElementById("authFields");
-const authButtons = document.getElementById("authButtons");
+const $ = id => document.getElementById(id);
+const statusBox = $("status");
+const messagesBox = $("messages");
+const nameInput = $("username");
+const input = $("messageInput");
+const form = $("chatForm");
+const sendButton = $("sendButton");
+const settings = $("settings");
+const settingsButton = $("settingsButton");
+const themeButton = $("themeButton");
+const colorInput = $("colorInput");
+const backgroundSelect = $("backgroundSelect");
+const bubbleSelect = $("bubbleSelect");
+const photoInput = $("photoInput");
+const profilePreview = $("profilePreview");
+const currentAvatar = $("currentAvatar");
+const profileName = $("profileName");
+const emailInput = $("emailInput");
+const passwordInput = $("passwordInput");
+const signupName = $("signupName");
+const loginButton = $("loginButton");
+const signupButton = $("signupButton");
+const logoutButton = $("logoutButton");
+const accountInfo = $("accountInfo");
+const authFields = $("authFields");
+const authButtons = $("authButtons");
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;charset=UTF-8," +
@@ -202,6 +192,8 @@ let client = null;
 let currentUser = null;
 let profilePhoto = "";
 let profilesById = {};
+let profileChannel = null;
+let messageChannel = null;
 
 function status(text, error = false) {
   statusBox.textContent = text;
@@ -209,6 +201,10 @@ function status(text, error = false) {
 }
 
 function setAvatar(element, name, photo) {
+  element.onerror = () => {
+    element.onerror = null;
+    element.src = DEFAULT_AVATAR;
+  };
   element.src = photo || DEFAULT_AVATAR;
   element.alt = photo
     ? "Foto de perfil de " + name
@@ -233,7 +229,6 @@ function applySettings() {
     theme === "light" ? "🌙 Modo oscuro" : "☀️ Modo claro";
 
   document.documentElement.style.setProperty("--accent", color);
-
   messagesBox.classList.remove(
     "bg-gradient", "bg-dots", "bubbles-rounded", "bubbles-square"
   );
@@ -241,7 +236,6 @@ function applySettings() {
   if (background !== "plain") {
     messagesBox.classList.add("bg-" + background);
   }
-
   if (bubbles === "rounded") {
     messagesBox.classList.add("bubbles-rounded");
   } else if (bubbles === "square") {
@@ -282,7 +276,7 @@ bubbleSelect.addEventListener("change", () => {
 
 nameInput.addEventListener("input", updateProfile);
 
-document.getElementById("resetSettings").addEventListener("click", () => {
+$("resetSettings").addEventListener("click", () => {
   ["chatTheme", "chatColor", "chatBackground", "chatBubbles"]
     .forEach(key => localStorage.removeItem(key));
   applySettings();
@@ -291,14 +285,12 @@ document.getElementById("resetSettings").addEventListener("click", () => {
 
 function updateAuthUI() {
   const loggedIn = !!currentUser;
-
   authFields.hidden = loggedIn;
   authButtons.hidden = loggedIn;
   logoutButton.hidden = !loggedIn;
-
   nameInput.disabled = !loggedIn;
   photoInput.disabled = !loggedIn;
-  document.getElementById("removePhoto").disabled = !loggedIn;
+  $("removePhoto").disabled = !loggedIn;
   input.disabled = !loggedIn;
   sendButton.disabled = !loggedIn;
 
@@ -326,10 +318,9 @@ async function loadProfile() {
 
   if (error) throw error;
 
-  if (data) {
-    nameInput.value = data.username || "";
-    profilePhoto = data.avatar_url || "";
-  } else {
+  let profile = data;
+
+  if (!profile) {
     const suggested = (
       signupName.value.trim() ||
       currentUser.email?.split("@")[0] ||
@@ -338,27 +329,22 @@ async function loadProfile() {
 
     const { data: created, error: createError } = await client
       .from("profiles")
-      .insert({
+      .upsert({
         id: currentUser.id,
         username: suggested,
         avatar_url: null
-      })
+      }, { onConflict: "id" })
       .select("id,username,avatar_url")
       .single();
 
     if (createError) throw createError;
-
-    nameInput.value = created.username;
-    profilePhoto = created.avatar_url || "";
+    profile = created;
   }
 
-  localStorage.setItem("chatName", nameInput.value);
+  nameInput.value = profile.username || "";
+  profilePhoto = profile.avatar_url || "";
+  profilesById[currentUser.id] = profile;
   updateProfile();
-
-  profilesById[currentUser.id] = {
-    username: nameInput.value,
-    avatar_url: profilePhoto
-  };
 }
 
 async function refreshProfiles(userIds) {
@@ -371,7 +357,7 @@ async function refreshProfiles(userIds) {
     .in("id", ids);
 
   if (error) {
-    console.warn("No se pudieron cargar algunos perfiles", error.message);
+    console.warn("No se pudieron cargar los perfiles:", error.message);
     return;
   }
 
@@ -382,8 +368,22 @@ async function refreshProfiles(userIds) {
 
 function showMessage(message) {
   const key = String(message.id);
+  const existing = [...messagesBox.children].find(
+    el => el.dataset.id === key
+  );
 
-  if ([...messagesBox.children].some(el => el.dataset.id === key)) return;
+  const profile = profilesById[message.user_id];
+  const displayName =
+    profile?.username || message.username || "Usuario";
+
+  if (existing) {
+    const avatar = existing.querySelector(".avatar");
+    const name = existing.querySelector("strong");
+
+    if (avatar) setAvatar(avatar, displayName, profile?.avatar_url || "");
+    if (name) name.textContent = displayName;
+    return;
+  }
 
   const item = document.createElement("article");
   item.className = "message";
@@ -391,11 +391,6 @@ function showMessage(message) {
 
   const avatar = document.createElement("img");
   avatar.className = "avatar";
-
-  const profile = profilesById[message.user_id];
-  const displayName =
-    profile?.username || message.username || "Usuario";
-
   setAvatar(avatar, displayName, profile?.avatar_url || "");
 
   const body = document.createElement("div");
@@ -414,8 +409,6 @@ function showMessage(message) {
 }
 
 async function renderMessages() {
-  messagesBox.replaceChildren();
-
   const { data, error } = await client
     .from("messages")
     .select("id,user_id,username,content,created_at")
@@ -425,6 +418,8 @@ async function renderMessages() {
   if (error) throw error;
 
   await refreshProfiles((data || []).map(message => message.user_id));
+
+  messagesBox.replaceChildren();
   (data || []).forEach(showMessage);
 }
 
@@ -468,10 +463,8 @@ loginButton.addEventListener("click", async () => {
 
   try {
     const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password
+      email, password
     });
-
     if (error) throw error;
 
     currentUser = data.user;
@@ -495,12 +488,10 @@ signupButton.addEventListener("click", async () => {
     status("Completá correo, contraseña y nombre.", true);
     return;
   }
-
   if (password.length < 6) {
     status("La contraseña debe tener al menos 6 caracteres.", true);
     return;
   }
-
   if (username.length < 2 || username.length > 24) {
     status("El nombre debe tener entre 2 y 24 caracteres.", true);
     return;
@@ -512,11 +503,8 @@ signupButton.addEventListener("click", async () => {
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: location.origin + location.pathname
-      }
+      options: { emailRedirectTo: location.origin + location.pathname }
     });
-
     if (error) throw error;
 
     if (data.session && data.user) {
@@ -570,22 +558,17 @@ nameInput.addEventListener("change", async () => {
     status("Nombre de perfil actualizado.");
   } catch (error) {
     status("No se pudo cambiar el nombre: " + error.message, true);
-
-    try {
-      await loadProfile();
-    } catch (_) {}
+    try { await loadProfile(); } catch (_) {}
   }
 });
 
 function fileToCompressedJpeg(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
 
     reader.onload = () => {
       const img = new Image();
-
       img.onerror = () => reject(new Error("No se pudo abrir la imagen."));
 
       img.onload = () => {
@@ -596,10 +579,13 @@ function fileToCompressedJpeg(file) {
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
 
-        canvas.getContext("2d").drawImage(
-          img, 0, 0, canvas.width, canvas.height
-        );
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo procesar la imagen."));
+          return;
+        }
 
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(blob => {
           if (blob) resolve(blob);
           else reject(new Error("No se pudo procesar la imagen."));
@@ -622,7 +608,6 @@ photoInput.addEventListener("change", async () => {
     photoInput.value = "";
     return;
   }
-
   if (file.size > 5 * 1024 * 1024) {
     status("La imagen supera el límite de 5 MB.", true);
     photoInput.value = "";
@@ -639,7 +624,8 @@ photoInput.addEventListener("change", async () => {
       .from("avatars")
       .upload(path, blob, {
         contentType: "image/jpeg",
-        upsert: true
+        upsert: true,
+        cacheControl: "0"
       });
 
     if (uploadError) throw uploadError;
@@ -648,10 +634,13 @@ photoInput.addEventListener("change", async () => {
       .from("avatars")
       .getPublicUrl(path);
 
+    const freshPhotoUrl =
+      urlData.publicUrl + "?v=" + Date.now();
+
     const { data, error } = await client
       .from("profiles")
       .update({
-        avatar_url: urlData.publicUrl,
+        avatar_url: freshPhotoUrl,
         updated_at: new Date().toISOString()
       })
       .eq("id", currentUser.id)
@@ -660,7 +649,7 @@ photoInput.addEventListener("change", async () => {
 
     if (error) throw error;
 
-    profilePhoto = data.avatar_url;
+    profilePhoto = data.avatar_url || "";
     profilesById[currentUser.id] = data;
     updateProfile();
     await renderMessages();
@@ -672,7 +661,7 @@ photoInput.addEventListener("change", async () => {
   }
 });
 
-document.getElementById("removePhoto").addEventListener("click", async () => {
+$("removePhoto").addEventListener("click", async () => {
   if (!currentUser) return;
 
   try {
@@ -723,6 +712,8 @@ form.addEventListener("submit", async event => {
   sendButton.disabled = true;
 
   try {
+    await ensureProfileName(username);
+
     const { error } = await client.from("messages").insert({
       user_id: currentUser.id,
       username,
@@ -748,7 +739,6 @@ async function start() {
   }
 
   client = window.supabase.createClient(URL_SUPABASE, CLAVE_PUBLICA);
-
   applySettings();
   updateProfile();
 
@@ -758,20 +748,43 @@ async function start() {
 
     currentUser = data.session?.user || null;
 
-    if (currentUser) {
-      await loadProfile();
-      updateAuthUI();
-    } else {
-      updateAuthUI();
-    }
-
+    if (currentUser) await loadProfile();
+    updateAuthUI();
     await renderMessages();
 
     client.auth.onAuthStateChange((_event, session) => {
       currentUser = session?.user || null;
     });
 
-    client.channel("chat-publico")
+    profileChannel = client.channel("perfiles-en-tiempo-real")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "profiles"
+      }, async payload => {
+        const profile = payload.new;
+
+        if (profile?.id) {
+          profilesById[profile.id] = profile;
+
+          if (currentUser && profile.id === currentUser.id) {
+            profilePhoto = profile.avatar_url || "";
+            if (nameInput.value !== profile.username) {
+              nameInput.value = profile.username || "";
+            }
+            updateProfile();
+          }
+        }
+
+        try {
+          await renderMessages();
+        } catch (error) {
+          console.warn("No se pudieron actualizar los mensajes:", error);
+        }
+      })
+      .subscribe();
+
+    messageChannel = client.channel("chat-publico")
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
@@ -786,9 +799,10 @@ async function start() {
             ? "Conectado. ¡Ya podés hablar!"
             : "Conectado. Iniciá sesión para chatear.");
         } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT") {
-          status("Error de conexión en tiempo real. Recargá la página.", true);
+          status("Error de conexión en tiempo real. Revisá la configuración de Supabase.", true);
         }
       });
+
   } catch (error) {
     status("Error al iniciar el chat: " + error.message, true);
   }
