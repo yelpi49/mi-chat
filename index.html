@@ -49,11 +49,10 @@ header p{margin:0;color:var(--muted)}
 #previewImage{width:54px;height:54px;flex-shrink:0;object-fit:cover;border-radius:6px}
 #previewName{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
 #composerButtons{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,auto);gap:8px;width:100%}
-#choosePhoto{display:block;width:100%;min-width:0}
+#photoLabel{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:bold;background:var(--bubble);color:var(--text);border:1px solid var(--border)}
 #sendButton{display:block;width:100%;min-width:100px}
 #messagePhoto{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 #photoLabel:focus-within{outline:2px solid var(--accent)}
-.file-button{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:bold}
 #composerHint{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:7px}
 #roomPanel{position:absolute;z-index:5;top:95px;right:10px;width:min(340px,calc(100% - 20px));max-height:65%;overflow:auto;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:13px;box-shadow:0 8px 28px #0005}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
@@ -74,7 +73,7 @@ header p{margin:0;color:var(--muted)}
  #messages{padding:9px}
  .controls{padding:8px}
  #composerButtons{grid-template-columns:minmax(0,1fr) minmax(95px,auto);gap:6px}
- #composerButtons button,.file-button{padding:10px 5px;font-size:13px}
+ #composerButtons button,#photoLabel{padding:10px 5px;font-size:13px}
  #roomPanel{top:90px}
 }
 </style>
@@ -167,7 +166,7 @@ header p{margin:0;color:var(--muted)}
 
 <input id="messagePhoto" type="file" accept="image/jpeg,image/png,image/webp">
 <div id="composerButtons">
-<label id="photoLabel" class="file-button" for="messagePhoto">📷 Adjuntar foto</label>
+<label id="photoLabel" for="messagePhoto" tabindex="0">📷 Adjuntar foto</label>
 <button id="sendButton" type="submit">Enviar ➤</button>
 </div>
 <small id="composerHint">Máximo 1 foto por mensaje · JPG, PNG o WebP · 5 MB</small>
@@ -189,6 +188,13 @@ const SUPABASE_KEY = "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
 const PHOTO_BUCKET = "chat-photos";
 const GLOBAL_ROOM = "GLOBAL";
 const $ = id => document.getElementById(id);
+
+if (!window.supabase) {
+  $("status").textContent = "Error: no se pudo cargar Supabase. Revisá tu conexión.";
+  $("status").classList.add("error");
+  return;
+}
+
 const client = window.supabase.createClient(URL_SUPABASE, SUPABASE_KEY);
 
 const messagesBox = $("messages");
@@ -257,27 +263,33 @@ $("themeButton").addEventListener("click", () => {
   localStorage.setItem("chatTheme", document.body.classList.contains("light") ? "dark" : "light");
   applySettings();
 });
+
 $("settingsButton").addEventListener("click", () => {
   $("settings").hidden = !$("settings").hidden;
 });
+
 $("roomsButton").addEventListener("click", async () => {
   $("roomPanel").hidden = !$("roomPanel").hidden;
   if (!$("roomPanel").hidden) await loadRooms();
 });
+
 $("closeRooms").addEventListener("click", () => $("roomPanel").hidden = true);
 
 $("colorInput").addEventListener("input", () => {
   localStorage.setItem("chatColor", $("colorInput").value);
   applySettings();
 });
+
 $("backgroundSelect").addEventListener("change", () => {
   localStorage.setItem("chatBackground", $("backgroundSelect").value);
   applySettings();
 });
+
 $("bubbleSelect").addEventListener("change", () => {
   localStorage.setItem("chatBubbles", $("bubbleSelect").value);
   applySettings();
 });
+
 $("resetSettings").addEventListener("click", () => {
   ["chatTheme","chatColor","chatBackground","chatBubbles"].forEach(k => localStorage.removeItem(k));
   applySettings();
@@ -301,12 +313,14 @@ $("saveName").addEventListener("click", () => {
     $("nameStatus").textContent = "El nombre debe tener entre 1 y 24 caracteres.";
     return;
   }
+
   if (next === previous) {
     $("nameStatus").textContent = "Ese ya es tu nombre actual.";
     return;
   }
 
   const changes = getNameChanges();
+
   if (previous && changes.length >= 2) {
     const remaining = Math.max(0, 86400000 - (Date.now() - changes[0]));
     const hours = Math.floor(remaining / 3600000);
@@ -316,12 +330,15 @@ $("saveName").addEventListener("click", () => {
   }
 
   if (previous) changes.push(Date.now());
+
   localStorage.setItem("chatNameChanges", JSON.stringify(changes));
   localStorage.setItem("chatName", next);
   updateProfile();
+
   $("nameStatus").textContent = previous
     ? `Nombre actualizado. Cambios usados: ${changes.length} de 2.`
     : "Nombre inicial guardado. No cuenta como cambio.";
+
   status("Nombre guardado.");
 });
 
@@ -331,45 +348,74 @@ nameInput.addEventListener("input", updateProfile);
 async function compressImage(file, maxDimension = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+
     reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+
     reader.onload = () => {
       const img = new Image();
+
       img.onerror = () => reject(new Error("La imagen no es válida."));
+
       img.onload = () => {
         const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
         const canvas = document.createElement("canvas");
+
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
+
         const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("No se pudo procesar la imagen."));
+          return;
+        }
+
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("No se pudo procesar la imagen.")), "image/jpeg", quality);
+
+        canvas.toBlob(
+          blob => blob
+            ? resolve(blob)
+            : reject(new Error("No se pudo procesar la imagen.")),
+          "image/jpeg",
+          quality
+        );
       };
+
       img.src = reader.result;
     };
+
     reader.readAsDataURL(file);
   });
 }
 
 async function uploadImage(file, folder) {
   if (!file) return "";
+
   if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
     throw new Error("Usá una imagen JPG, PNG o WebP.");
   }
-  if (file.size > 5 * 1024 * 1024) throw new Error("La imagen supera el límite de 5 MB.");
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("La imagen supera el límite de 5 MB.");
+  }
 
   const blob = await compressImage(file);
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+
   const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, blob, {
     contentType: "image/jpeg",
     upsert: false
   });
+
   if (error) throw error;
+
   return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 $("avatarInput").addEventListener("change", async () => {
   const file = $("avatarInput").files[0];
   if (!file) return;
+
   try {
     status("Subiendo foto de perfil...");
     profilePhoto = await uploadImage(file, "avatars");
@@ -399,6 +445,7 @@ photoInput.addEventListener("change", () => {
     clearSelectedPhoto();
     return;
   }
+
   if (file.size > 5 * 1024 * 1024) {
     status("La imagen supera el límite de 5 MB.", true);
     clearSelectedPhoto();
@@ -415,9 +462,14 @@ photoInput.addEventListener("change", () => {
 
 function clearPreviewOnly() {
   const image = $("previewImage");
-  if (image.src.startsWith("blob:")) URL.revokeObjectURL(image.src);
+
+  if (image.src.startsWith("blob:")) {
+    URL.revokeObjectURL(image.src);
+  }
+
   image.src = "";
 }
+
 function clearSelectedPhoto() {
   clearPreviewOnly();
   selectedPhoto = null;
@@ -425,6 +477,7 @@ function clearSelectedPhoto() {
   $("photoPreview").hidden = true;
   $("previewName").textContent = "";
 }
+
 $("removePhoto").addEventListener("click", clearSelectedPhoto);
 
 function addMessage(message) {
@@ -462,16 +515,21 @@ function addMessage(message) {
     photo.src = message.photo_url;
     photo.alt = "Foto enviada por " + (message.username || "un usuario");
     photo.loading = "lazy";
+
     photo.addEventListener("click", () => {
       $("viewerImage").src = photo.src;
       $("photoViewer").hidden = false;
     });
+
     body.appendChild(photo);
   }
 
   const time = document.createElement("span");
   time.className = "time";
-  time.textContent = message.created_at ? new Date(message.created_at).toLocaleString("es-AR") : "";
+  time.textContent = message.created_at
+    ? new Date(message.created_at).toLocaleString("es-AR")
+    : "";
+
   body.appendChild(time);
   item.appendChild(body);
   messagesBox.appendChild(item);
@@ -479,16 +537,19 @@ function addMessage(message) {
 
 async function loadMessages() {
   const room = currentRoom;
+
   try {
     const { data, error } = await client.from("messages")
       .select("id,username,content,avatar,photo_url,room_code,created_at")
       .eq("room_code", room)
       .order("created_at", { ascending: true })
       .limit(200);
+
     if (error) throw error;
     if (room !== currentRoom) return;
 
     messagesBox.replaceChildren();
+
     if (!data || !data.length) {
       const empty = document.createElement("div");
       empty.id = "empty";
@@ -497,6 +558,7 @@ async function loadMessages() {
     } else {
       data.forEach(addMessage);
     }
+
     messagesBox.scrollTop = messagesBox.scrollHeight;
   } catch (error) {
     status("No se pudieron cargar los mensajes: " + error.message, true);
@@ -505,14 +567,17 @@ async function loadMessages() {
 
 async function refreshMessages() {
   const room = currentRoom;
+
   try {
     const { data, error } = await client.from("messages")
       .select("id,username,content,avatar,photo_url,room_code,created_at")
       .eq("room_code", room)
       .order("created_at", { ascending: false })
       .limit(30);
+
     if (error) throw error;
     if (room !== currentRoom) return;
+
     (data || []).reverse().forEach(addMessage);
   } catch (error) {
     status("Error actualizando mensajes: " + error.message, true);
@@ -523,10 +588,12 @@ async function switchRoom(code, name) {
   currentRoom = code;
   $("roomPanel").hidden = true;
   messagesBox.replaceChildren();
+
   const empty = document.createElement("div");
   empty.id = "empty";
   empty.textContent = "Cargando sala...";
   messagesBox.appendChild(empty);
+
   status("Sala actual: " + name + " (" + code + ")");
 
   if (realtimeChannel) {
@@ -549,8 +616,10 @@ async function switchRoom(code, name) {
     .subscribe();
 
   await loadMessages();
+
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(refreshMessages, 5000);
+
   await loadRooms();
 }
 
@@ -560,29 +629,38 @@ async function loadRooms() {
 
   const globalCard = document.createElement("div");
   globalCard.className = "room-card";
+
   const globalLabel = document.createElement("span");
   globalLabel.textContent = "🌎 Global";
+
   const globalButton = document.createElement("button");
   globalButton.textContent = currentRoom === GLOBAL_ROOM ? "Actual" : "Entrar";
   globalButton.disabled = currentRoom === GLOBAL_ROOM;
   globalButton.addEventListener("click", () => switchRoom(GLOBAL_ROOM, "Global"));
+
   globalCard.append(globalLabel, globalButton);
   container.appendChild(globalCard);
 
   try {
     const { data, error } = await client.from("chat_rooms")
-      .select("code,name,created_at").order("created_at", { ascending: false }).limit(100);
+      .select("code,name,created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
     if (error) throw error;
 
     for (const room of data || []) {
       const card = document.createElement("div");
       card.className = "room-card";
+
       const label = document.createElement("span");
       label.textContent = room.name + " · " + room.code;
+
       const button = document.createElement("button");
       button.textContent = currentRoom === room.code ? "Actual" : "Entrar";
       button.disabled = currentRoom === room.code;
       button.addEventListener("click", () => switchRoom(room.code, room.name));
+
       card.append(label, button);
       container.appendChild(card);
     }
@@ -597,6 +675,7 @@ function generateRoomCode() {
 
 $("createRoom").addEventListener("click", async () => {
   const name = $("newRoomName").value.trim();
+
   if (!name || name.length > 40) {
     status("Poné un nombre de sala de entre 1 y 40 caracteres.", true);
     return;
@@ -604,23 +683,34 @@ $("createRoom").addEventListener("click", async () => {
 
   $("createRoom").disabled = true;
   status("Creando sala...");
+
   try {
     let created = null;
+
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = generateRoomCode();
+
       const { data, error } = await client.from("chat_rooms")
-        .insert({ code, name }).select("code,name").single();
+        .insert({ code, name })
+        .select("code,name")
+        .single();
+
       if (!error) {
         created = data;
         break;
       }
+
       if (error.code !== "23505") throw error;
     }
-    if (!created) throw new Error("No se pudo generar un código único. Intentá de nuevo.");
+
+    if (!created) {
+      throw new Error("No se pudo generar un código único. Intentá de nuevo.");
+    }
 
     $("newRoomName").value = "";
     await switchRoom(created.code, created.name);
     status("Sala creada. Código: " + created.code);
+
     alert("¡Sala creada!\nNombre: " + created.name + "\nCódigo: " + created.code);
   } catch (error) {
     status("No se pudo crear la sala: " + error.message, true);
@@ -631,15 +721,21 @@ $("createRoom").addEventListener("click", async () => {
 
 $("joinRoom").addEventListener("click", async () => {
   const code = $("roomCodeInput").value.trim();
+
   if (!/^\d{8}$/.test(code)) {
     status("El código debe tener exactamente 8 dígitos.", true);
     return;
   }
+
   try {
     const { data, error } = await client.from("chat_rooms")
-      .select("code,name").eq("code", code).maybeSingle();
+      .select("code,name")
+      .eq("code", code)
+      .maybeSingle();
+
     if (error) throw error;
     if (!data) throw new Error("No existe una sala con ese código.");
+
     $("roomCodeInput").value = "";
     await switchRoom(data.code, data.name);
   } catch (error) {
@@ -647,8 +743,10 @@ $("joinRoom").addEventListener("click", async () => {
   }
 });
 
+/* ENVÍO CORREGIDO */
 $("chatForm").addEventListener("submit", async event => {
   event.preventDefault();
+
   if (sending) return;
 
   const username = nameInput.value.trim();
@@ -661,11 +759,13 @@ $("chatForm").addEventListener("submit", async event => {
     nameInput.focus();
     return;
   }
+
   if (!content && !photo) {
     status("Escribí un mensaje o adjuntá una foto.", true);
     input.focus();
     return;
   }
+
   if (content.length > 500) {
     status("El mensaje no puede superar los 500 caracteres.", true);
     return;
@@ -673,18 +773,29 @@ $("chatForm").addEventListener("submit", async event => {
 
   sending = true;
   $("sendButton").disabled = true;
-  $("choosePhoto").disabled = true;
-  status(photo ? "Subiendo foto y enviando mensaje..." : "Enviando mensaje...");
+  $("photoLabel").style.pointerEvents = "none";
+  $("photoLabel").style.opacity = "0.5";
 
   try {
+    status(photo
+      ? "Subiendo foto y enviando mensaje..."
+      : "Enviando mensaje..."
+    );
+
     let photoUrl = null;
-    if (photo) photoUrl = await uploadImage(photo, "messages");
+
+    if (photo) {
+      photoUrl = await uploadImage(photo, "messages");
+    }
 
     let clientId = localStorage.getItem("chatClientId");
+
     if (!clientId) {
       clientId = window.crypto && crypto.randomUUID
         ? crypto.randomUUID()
-        : "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        : "client-" + Date.now() + "-" +
+          Math.random().toString(36).slice(2);
+
       localStorage.setItem("chatClientId", clientId);
     }
 
@@ -697,20 +808,34 @@ $("chatForm").addEventListener("submit", async event => {
       client_id: clientId
     };
 
-    const { error } = await client.from("messages").insert(row);
+    const { error } = await client
+      .from("messages")
+      .insert(row);
+
     if (error) throw error;
 
     input.value = "";
     clearSelectedPhoto();
-    status("Mensaje enviado.");
+
+    status("Mensaje enviado correctamente.");
+
     await refreshMessages();
     messagesBox.scrollTop = messagesBox.scrollHeight;
+
   } catch (error) {
-    status("No se pudo enviar: " + error.message, true);
+    console.error("Error al enviar el mensaje:", error);
+
+    status(
+      "No se pudo enviar: " +
+      (error.message || "Error desconocido"),
+      true
+    );
+
   } finally {
     sending = false;
     $("sendButton").disabled = false;
-    $("choosePhoto").disabled = false;
+    $("photoLabel").style.pointerEvents = "";
+    $("photoLabel").style.opacity = "";
   }
 });
 
@@ -718,6 +843,7 @@ $("closeViewer").addEventListener("click", () => {
   $("photoViewer").hidden = true;
   $("viewerImage").src = "";
 });
+
 $("photoViewer").addEventListener("click", event => {
   if (event.target === $("photoViewer")) {
     $("photoViewer").hidden = true;
@@ -732,8 +858,10 @@ async function start() {
   try {
     const { error } = await client.from("messages").select("id").limit(1);
     if (error) throw error;
+
     await switchRoom(GLOBAL_ROOM, "Global");
     await loadRooms();
+
     status("Conectado · Sala Global");
   } catch (error) {
     status("No se pudo conectar: " + error.message, true);
