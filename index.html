@@ -15,7 +15,7 @@ body{margin:0;padding:8px;background:var(--page);color:var(--text);font-family:A
 button,input,select,textarea{font:inherit}
 button{border:0;border-radius:9px;background:var(--accent);color:white;padding:10px 13px;cursor:pointer;font-weight:bold}
 button:disabled{opacity:.5;cursor:not-allowed}
-button.secondary,.file-button{background:var(--bubble);color:var(--text);border:1px solid var(--border)}
+button.secondary,#photoLabel{background:var(--bubble);color:var(--text);border:1px solid var(--border)}
 input,select,textarea{min-width:0;width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--input);color:var(--text)}
 .chat{position:relative;max-width:850px;height:calc(100dvh - 16px);min-height:420px;margin:auto;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
 header{padding:14px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -49,10 +49,10 @@ header p{margin:0;color:var(--muted)}
 #previewImage{width:54px;height:54px;flex-shrink:0;object-fit:cover;border-radius:6px}
 #previewName{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
 #composerButtons{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,auto);gap:8px;width:100%}
-#photoLabel{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:bold;background:var(--bubble);color:var(--text);border:1px solid var(--border)}
+#photoLabel{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:bold}
 #sendButton{display:block;width:100%;min-width:100px}
 #messagePhoto{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
-#photoLabel:focus-within{outline:2px solid var(--accent)}
+#photoLabel:focus{outline:2px solid var(--accent)}
 #composerHint{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:7px}
 #roomPanel{position:absolute;z-index:5;top:95px;right:10px;width:min(340px,calc(100% - 20px));max-height:65%;overflow:auto;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:13px;box-shadow:0 8px 28px #0005}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
@@ -130,14 +130,14 @@ header p{margin:0;color:var(--muted)}
 
 <section id="roomPanel" hidden>
 <div class="panel-head">
-<strong>🏠 Salas del chat</strong>
+<strong>🏠 Mis salas</strong>
 <button id="closeRooms" class="secondary" type="button">✕</button>
 </div>
 <div class="room-form">
 <strong>Crear una sala</strong>
 <input id="newRoomName" maxlength="40" placeholder="Nombre de la sala">
 <button id="createRoom" type="button">Crear sala con código</button>
-<small>Se generará un código único de 8 dígitos.</small>
+<small>Compartí el código únicamente con quien quieras invitar.</small>
 <strong>Entrar por código</strong>
 <input id="roomCodeInput" inputmode="numeric" maxlength="8" placeholder="Código de 8 dígitos">
 <button id="joinRoom" class="secondary" type="button">Entrar a la sala</button>
@@ -154,16 +154,13 @@ header p{margin:0;color:var(--muted)}
 <img id="currentAvatar" class="avatar" alt="Tu avatar">
 <span id="currentName">Elegí tu nombre en Personalizar</span>
 </div>
-
 <form id="chatForm">
 <textarea id="messageInput" maxlength="500" placeholder="Escribí un mensaje..." rows="2"></textarea>
-
 <div id="photoPreview" hidden>
 <img id="previewImage" alt="Vista previa de la foto">
 <span id="previewName"></span>
 <button id="removePhoto" class="secondary" type="button">Quitar</button>
 </div>
-
 <input id="messagePhoto" type="file" accept="image/jpeg,image/png,image/webp">
 <div id="composerButtons">
 <label id="photoLabel" for="messagePhoto" tabindex="0">📷 Adjuntar foto</label>
@@ -187,16 +184,16 @@ const URL_SUPABASE = "https://xluskazgonjpchcgdzii.supabase.co";
 const SUPABASE_KEY = "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
 const PHOTO_BUCKET = "chat-photos";
 const GLOBAL_ROOM = "GLOBAL";
+const PHOTO_ONLY = "📷 Foto adjunta";
 const $ = id => document.getElementById(id);
 
 if (!window.supabase) {
-  $("status").textContent = "Error: no se pudo cargar Supabase. Revisá tu conexión.";
+  $("status").textContent = "Error: no se pudo cargar Supabase.";
   $("status").classList.add("error");
   return;
 }
 
 const client = window.supabase.createClient(URL_SUPABASE, SUPABASE_KEY);
-
 const messagesBox = $("messages");
 const statusBox = $("status");
 const nameInput = $("username");
@@ -209,6 +206,7 @@ let profilePhoto = localStorage.getItem("chatAvatar") || "";
 let realtimeChannel = null;
 let refreshTimer = null;
 let sending = false;
+let roomGeneration = 0;
 
 function status(message, error = false) {
   statusBox.textContent = message;
@@ -330,7 +328,6 @@ $("saveName").addEventListener("click", () => {
   }
 
   if (previous) changes.push(Date.now());
-
   localStorage.setItem("chatNameChanges", JSON.stringify(changes));
   localStorage.setItem("chatName", next);
   updateProfile();
@@ -348,34 +345,27 @@ nameInput.addEventListener("input", updateProfile);
 async function compressImage(file, maxDimension = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
 
     reader.onload = () => {
       const img = new Image();
-
       img.onerror = () => reject(new Error("La imagen no es válida."));
 
       img.onload = () => {
         const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
         const canvas = document.createElement("canvas");
-
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
 
         const ctx = canvas.getContext("2d");
-
         if (!ctx) {
           reject(new Error("No se pudo procesar la imagen."));
           return;
         }
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
         canvas.toBlob(
-          blob => blob
-            ? resolve(blob)
-            : reject(new Error("No se pudo procesar la imagen.")),
+          blob => blob ? resolve(blob) : reject(new Error("No se pudo procesar la imagen.")),
           "image/jpeg",
           quality
         );
@@ -436,6 +426,20 @@ $("removeAvatar").addEventListener("click", () => {
   status("Foto de perfil quitada de este navegador.");
 });
 
+function clearPreviewOnly() {
+  const image = $("previewImage");
+  if (image.src.startsWith("blob:")) URL.revokeObjectURL(image.src);
+  image.src = "";
+}
+
+function clearSelectedPhoto() {
+  clearPreviewOnly();
+  selectedPhoto = null;
+  photoInput.value = "";
+  $("photoPreview").hidden = true;
+  $("previewName").textContent = "";
+}
+
 photoInput.addEventListener("change", () => {
   const file = photoInput.files && photoInput.files[0];
   if (!file) return;
@@ -460,28 +464,14 @@ photoInput.addEventListener("change", () => {
   status("Foto adjuntada. Podés escribir un texto y enviarlos juntos.");
 });
 
-function clearPreviewOnly() {
-  const image = $("previewImage");
-
-  if (image.src.startsWith("blob:")) {
-    URL.revokeObjectURL(image.src);
-  }
-
-  image.src = "";
-}
-
-function clearSelectedPhoto() {
-  clearPreviewOnly();
-  selectedPhoto = null;
-  photoInput.value = "";
-  $("photoPreview").hidden = true;
-  $("previewName").textContent = "";
-}
-
 $("removePhoto").addEventListener("click", clearSelectedPhoto);
 
 function addMessage(message) {
-  if (messagesBox.querySelector(`[data-message-id="${CSS.escape(String(message.id))}"]`)) return;
+  const duplicate = Array.from(
+    messagesBox.querySelectorAll("[data-message-id]")
+  ).some(el => el.dataset.messageId === String(message.id));
+
+  if (duplicate) return;
 
   const empty = $("empty");
   if (empty) empty.remove();
@@ -503,7 +493,7 @@ function addMessage(message) {
   username.textContent = message.username || "Usuario";
   body.appendChild(username);
 
-  if (message.content) {
+  if (message.content && message.content !== PHOTO_ONLY) {
     const paragraph = document.createElement("p");
     paragraph.textContent = message.content;
     body.appendChild(paragraph);
@@ -584,7 +574,39 @@ async function refreshMessages() {
   }
 }
 
+/* SALAS: se guardan localmente las salas que creaste o a las que entraste. */
+function getKnownRooms() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("chatKnownRooms") || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter(room =>
+      room &&
+      typeof room.code === "string" &&
+      typeof room.name === "string" &&
+      /^\d{8}$/.test(room.code)
+    );
+  } catch {
+    return [];
+  }
+}
+
+function rememberRoom(code, name) {
+  code = String(code);
+  name = String(name);
+
+  if (!/^\d{8}$/.test(code)) {
+    throw new Error("Código de sala no válido.");
+  }
+
+  const rooms = getKnownRooms().filter(room => room.code !== code);
+  rooms.push({ code, name });
+
+  localStorage.setItem("chatKnownRooms", JSON.stringify(rooms));
+}
+
 async function switchRoom(code, name) {
+  const generation = ++roomGeneration;
   currentRoom = code;
   $("roomPanel").hidden = true;
   messagesBox.replaceChildren();
@@ -597,9 +619,12 @@ async function switchRoom(code, name) {
   status("Sala actual: " + name + " (" + code + ")");
 
   if (realtimeChannel) {
-    await client.removeChannel(realtimeChannel);
+    const oldChannel = realtimeChannel;
     realtimeChannel = null;
+    await client.removeChannel(oldChannel);
   }
+
+  if (generation !== roomGeneration) return;
 
   realtimeChannel = client.channel("messages-room-" + code)
     .on("postgres_changes", {
@@ -617,9 +642,10 @@ async function switchRoom(code, name) {
 
   await loadMessages();
 
+  if (generation !== roomGeneration) return;
+
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(refreshMessages, 5000);
-
   await loadRooms();
 }
 
@@ -627,49 +653,51 @@ async function loadRooms() {
   const container = $("roomCards");
   container.replaceChildren();
 
-  const globalCard = document.createElement("div");
-  globalCard.className = "room-card";
+  function addRoomCard(name, code) {
+    const card = document.createElement("div");
+    card.className = "room-card";
 
-  const globalLabel = document.createElement("span");
-  globalLabel.textContent = "🌎 Global";
+    const label = document.createElement("span");
+    label.textContent = code === GLOBAL_ROOM
+      ? "🌎 Global"
+      : name + " · " + code;
 
-  const globalButton = document.createElement("button");
-  globalButton.textContent = currentRoom === GLOBAL_ROOM ? "Actual" : "Entrar";
-  globalButton.disabled = currentRoom === GLOBAL_ROOM;
-  globalButton.addEventListener("click", () => switchRoom(GLOBAL_ROOM, "Global"));
+    const button = document.createElement("button");
+    button.textContent = currentRoom === code ? "Actual" : "Entrar";
+    button.disabled = currentRoom === code;
 
-  globalCard.append(globalLabel, globalButton);
-  container.appendChild(globalCard);
+    button.addEventListener("click", () => {
+      switchRoom(code, name);
+    });
 
-  try {
-    const { data, error } = await client.from("chat_rooms")
-      .select("code,name,created_at")
-      .order("created_at", { ascending: false })
-      .limit(100);
+    card.append(label, button);
+    container.appendChild(card);
+  }
 
-    if (error) throw error;
+  // Global es la única sala pública que aparece para todos.
+  addRoomCard("Global", GLOBAL_ROOM);
 
-    for (const room of data || []) {
-      const card = document.createElement("div");
-      card.className = "room-card";
+  // No consultar la lista completa de chat_rooms para mostrarla.
+  // Cada navegador ve solo las salas que guardó al crearlas o entrar.
+  const rooms = getKnownRooms();
 
-      const label = document.createElement("span");
-      label.textContent = room.name + " · " + room.code;
+  rooms.forEach(room => addRoomCard(room.name, room.code));
 
-      const button = document.createElement("button");
-      button.textContent = currentRoom === room.code ? "Actual" : "Entrar";
-      button.disabled = currentRoom === room.code;
-      button.addEventListener("click", () => switchRoom(room.code, room.name));
-
-      card.append(label, button);
-      container.appendChild(card);
-    }
-  } catch (error) {
-    status("No se pudo cargar la lista de salas: " + error.message, true);
+  if (rooms.length === 0) {
+    const message = document.createElement("p");
+    message.textContent =
+      "No tenés salas privadas guardadas. Creá una o ingresá un código para unirte.";
+    message.style.color = "var(--muted)";
+    container.appendChild(message);
   }
 }
 
 function generateRoomCode() {
+  const values = new Uint32Array(1);
+  if (window.crypto && window.crypto.getRandomValues) {
+    window.crypto.getRandomValues(values);
+    return String(10000000 + (values[0] % 90000000));
+  }
   return String(Math.floor(10000000 + Math.random() * 90000000));
 }
 
@@ -707,11 +735,17 @@ $("createRoom").addEventListener("click", async () => {
       throw new Error("No se pudo generar un código único. Intentá de nuevo.");
     }
 
+    // Solo el navegador del creador guarda la sala automáticamente.
+    rememberRoom(created.code, created.name);
+
     $("newRoomName").value = "";
     await switchRoom(created.code, created.name);
-    status("Sala creada. Código: " + created.code);
 
-    alert("¡Sala creada!\nNombre: " + created.name + "\nCódigo: " + created.code);
+    status("Sala creada. Compartí este código: " + created.code);
+    alert(
+      "¡Sala creada!\nNombre: " + created.name +
+      "\nCódigo para compartir: " + created.code
+    );
   } catch (error) {
     status("No se pudo crear la sala: " + error.message, true);
   } finally {
@@ -727,6 +761,8 @@ $("joinRoom").addEventListener("click", async () => {
     return;
   }
 
+  $("joinRoom").disabled = true;
+
   try {
     const { data, error } = await client.from("chat_rooms")
       .select("code,name")
@@ -736,21 +772,25 @@ $("joinRoom").addEventListener("click", async () => {
     if (error) throw error;
     if (!data) throw new Error("No existe una sala con ese código.");
 
+    // Guardar la sala en este navegador solo después de validar el código.
+    rememberRoom(data.code, data.name);
+
     $("roomCodeInput").value = "";
     await switchRoom(data.code, data.name);
+    status("Entraste a " + data.name + ". Sala guardada en este navegador.");
   } catch (error) {
     status("No se pudo entrar: " + error.message, true);
+  } finally {
+    $("joinRoom").disabled = false;
   }
 });
 
-/* ENVÍO CORREGIDO */
 $("chatForm").addEventListener("submit", async event => {
   event.preventDefault();
-
   if (sending) return;
 
   const username = nameInput.value.trim();
-  const content = input.value.trim();
+  const typedContent = input.value.trim();
   const photo = selectedPhoto;
 
   if (!username) {
@@ -760,13 +800,13 @@ $("chatForm").addEventListener("submit", async event => {
     return;
   }
 
-  if (!content && !photo) {
+  if (!typedContent && !photo) {
     status("Escribí un mensaje o adjuntá una foto.", true);
     input.focus();
     return;
   }
 
-  if (content.length > 500) {
+  if (typedContent.length > 500) {
     status("El mensaje no puede superar los 500 caracteres.", true);
     return;
   }
@@ -777,60 +817,45 @@ $("chatForm").addEventListener("submit", async event => {
   $("photoLabel").style.opacity = "0.5";
 
   try {
-    status(photo
-      ? "Subiendo foto y enviando mensaje..."
-      : "Enviando mensaje..."
-    );
+    status(photo ? "Subiendo foto y enviando mensaje..." : "Enviando mensaje...");
 
     let photoUrl = null;
-
-    if (photo) {
-      photoUrl = await uploadImage(photo, "messages");
-    }
+    if (photo) photoUrl = await uploadImage(photo, "messages");
 
     let clientId = localStorage.getItem("chatClientId");
 
     if (!clientId) {
       clientId = window.crypto && crypto.randomUUID
         ? crypto.randomUUID()
-        : "client-" + Date.now() + "-" +
-          Math.random().toString(36).slice(2);
+        : "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 
       localStorage.setItem("chatClientId", clientId);
     }
 
+    // Evitar contenido vacío cuando se envía solamente una foto.
+    const contentToSave = typedContent || (photoUrl ? PHOTO_ONLY : "");
+
     const row = {
       username,
-      content,
+      content: contentToSave,
       avatar: profilePhoto || null,
       photo_url: photoUrl,
       room_code: currentRoom,
       client_id: clientId
     };
 
-    const { error } = await client
-      .from("messages")
-      .insert(row);
-
+    const { error } = await client.from("messages").insert(row);
     if (error) throw error;
 
     input.value = "";
     clearSelectedPhoto();
-
     status("Mensaje enviado correctamente.");
 
     await refreshMessages();
     messagesBox.scrollTop = messagesBox.scrollHeight;
-
   } catch (error) {
-    console.error("Error al enviar el mensaje:", error);
-
-    status(
-      "No se pudo enviar: " +
-      (error.message || "Error desconocido"),
-      true
-    );
-
+    console.error("Error al enviar:", error);
+    status("No se pudo enviar: " + (error.message || "Error desconocido"), true);
   } finally {
     sending = false;
     $("sendButton").disabled = false;
@@ -860,8 +885,6 @@ async function start() {
     if (error) throw error;
 
     await switchRoom(GLOBAL_ROOM, "Global");
-    await loadRooms();
-
     status("Conectado · Sala Global");
   } catch (error) {
     status("No se pudo conectar: " + error.message, true);
