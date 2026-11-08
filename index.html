@@ -1,898 +1,138 @@
-
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi Chat Público</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salas | Chat privado con código</title>
+<meta name="description" content="Chat privado por salas con código: mensajes, voz, fotos, video y llamadas.">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-:root{--accent:#6878f5;--page:#10131c;--panel:#1b2030;--bubble:#252b3e;--text:#f4f5fa;--muted:#aeb6cc;--border:#343b50;--input:#141927}
-body.light{--page:#edf0f8;--panel:#fff;--bubble:#f0f2fa;--text:#202438;--muted:#626b82;--border:#d7dced;--input:#fff}
-body{margin:0;padding:8px;background:var(--page);color:var(--text);font-family:Arial,sans-serif}
-button,input,select,textarea{font:inherit}
-button{border:0;border-radius:9px;background:var(--accent);color:white;padding:10px 13px;cursor:pointer;font-weight:bold}
-button:disabled{opacity:.5;cursor:not-allowed}
-button.secondary,#photoLabel{background:var(--bubble);color:var(--text);border:1px solid var(--border)}
-input,select,textarea{min-width:0;width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--input);color:var(--text)}
-.chat{position:relative;max-width:850px;height:calc(100dvh - 16px);min-height:420px;margin:auto;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
-header{padding:14px;border-bottom:1px solid var(--border);flex-shrink:0}
-h1{font-size:23px;margin:0 0 5px}
-header p{margin:0;color:var(--muted)}
-#status{font-size:13px;color:var(--muted);margin-top:8px;overflow-wrap:anywhere}
-#status.error{color:#ff7777}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
-#settings{padding:12px;display:grid;gap:12px;border-bottom:1px solid var(--border);max-height:32vh;overflow:auto}
-.setting{display:grid;gap:6px}
-.setting small{color:var(--muted);font-size:12px}
-.profile-preview{display:flex;align-items:center;gap:10px}
-.avatar{width:36px;height:36px;min-width:36px;object-fit:cover;border-radius:50%;background:var(--accent)}
-.avatar.large{width:60px;height:60px}
-#messages{flex:1;min-height:0;overflow-y:auto;padding:14px}
-#messages.bg-gradient{background-image:linear-gradient(135deg,color-mix(in srgb,var(--accent) 15%,transparent),transparent)}
-#messages.bg-dots{background-image:radial-gradient(#8885 1px,transparent 1px);background-size:18px 18px}
-#messages.bubbles-rounded .message-body{border-radius:22px}
-#messages.bubbles-square .message-body{border-radius:4px}
-.message{display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;overflow-wrap:anywhere}
-.message-body{min-width:0;max-width:calc(100% - 45px);padding:10px 12px;background:var(--bubble);border:1px solid var(--border);border-radius:12px}
-.message strong{color:var(--accent)}
-.message p{margin:5px 0 0;white-space:pre-wrap;line-height:1.4}
-.message-photo{display:block;width:auto;max-width:100%;max-height:320px;margin-top:8px;border-radius:10px;object-fit:contain;cursor:zoom-in}
-.time{display:block;color:var(--muted);font-size:11px;margin-top:6px}
-.controls{padding:10px;border-top:1px solid var(--border);flex-shrink:0}
-#profileLine{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-#chatForm{display:flex;flex-direction:column;gap:8px;margin:0;width:100%}
-#messageInput{display:block;width:100%;min-height:48px;max-height:120px;resize:vertical}
-#photoPreview{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;padding:8px;background:var(--bubble);border-radius:8px}
-#previewImage{width:54px;height:54px;flex-shrink:0;object-fit:cover;border-radius:6px}
-#previewName{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
-#composerButtons{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,auto);gap:8px;width:100%}
-#photoLabel{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:bold}
-#sendButton{display:block;width:100%;min-width:100px}
-#messagePhoto{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
-#photoLabel:focus{outline:2px solid var(--accent)}
-#composerHint{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:7px}
-#roomPanel{position:absolute;z-index:5;top:95px;right:10px;width:min(340px,calc(100% - 20px));max-height:65%;overflow:auto;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:13px;box-shadow:0 8px 28px #0005}
-.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
-.room-form{display:grid;gap:7px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-#roomCards{display:grid;gap:7px;margin-top:10px}
-.room-card{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px;border:1px solid var(--border);border-radius:9px}
-.room-card span{min-width:0;overflow-wrap:anywhere}
-.room-card button{padding:7px 9px;flex-shrink:0}
-#empty{text-align:center;color:var(--muted);padding:20px}
-#photoViewer{position:fixed;inset:0;z-index:20;background:#000e;display:flex;align-items:center;justify-content:center;padding:16px}
-#photoViewer img{max-width:100%;max-height:85vh;object-fit:contain}
-#photoViewer button{position:absolute;right:15px;top:15px}
-@media(max-width:480px){
- body{padding:4px}
- .chat{height:calc(100dvh - 8px);border-radius:10px}
- header{padding:10px}
- h1{font-size:21px}
- #messages{padding:9px}
- .controls{padding:8px}
- #composerButtons{grid-template-columns:minmax(0,1fr) minmax(95px,auto);gap:6px}
- #composerButtons button,#photoLabel{padding:10px 5px;font-size:13px}
- #roomPanel{top:90px}
-}
-</style>
-</head>
-<body>
-<main class="chat">
-<header>
-<h1>💬 Mi Chat</h1>
-<p>Un lugar para hablar con todos</p>
-<div id="status">Conectando...</div>
-<div class="actions">
-<button id="roomsButton" type="button">🏠 Salas</button>
-<button id="themeButton" class="secondary" type="button">☀️ Modo claro</button>
-<button id="settingsButton" class="secondary" type="button">⚙️ Personalizar</button>
-</div>
-</header>
-
-<section id="settings" hidden>
-<div class="setting">
-<strong>Tu perfil</strong>
-<div class="profile-preview">
-<img id="profilePreview" class="avatar large" alt="Foto de perfil">
-<div>
-<strong id="profileName">Tu nombre</strong>
-<small style="display:block">La primera elección de nombre no cuenta como cambio.</small>
-</div>
-</div>
-<label for="username">Nombre para mostrar</label>
-<input id="username" maxlength="24" placeholder="Elegí tu nombre">
-<button id="saveName" type="button">Guardar nombre</button>
-<small id="nameStatus">Máximo 2 cambios cada 24 horas en este navegador.</small>
-<label for="avatarInput">Foto de perfil</label>
-<input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp">
-<button id="removeAvatar" class="secondary" type="button">Quitar foto de perfil</button>
-</div>
-<div class="setting">
-<label for="colorInput">🎨 Color principal</label>
-<input id="colorInput" type="color" value="#6878f5">
-<label for="backgroundSelect">🖼️ Fondo del chat</label>
-<select id="backgroundSelect">
-<option value="plain">Simple</option>
-<option value="gradient">Degradado</option>
-<option value="dots">Puntos</option>
-</select>
-<label for="bubbleSelect">💬 Estilo de burbujas</label>
-<select id="bubbleSelect">
-<option value="normal">Normal</option>
-<option value="rounded">Redondeadas</option>
-<option value="square">Cuadradas</option>
-</select>
-<button id="resetSettings" class="secondary" type="button">Restablecer personalización</button>
-</div>
-</section>
-
-<section id="roomPanel" hidden>
-<div class="panel-head">
-<strong>🏠 Mis salas</strong>
-<button id="closeRooms" class="secondary" type="button">✕</button>
-</div>
-<div class="room-form">
-<strong>Crear una sala</strong>
-<input id="newRoomName" maxlength="40" placeholder="Nombre de la sala">
-<button id="createRoom" type="button">Crear sala con código</button>
-<small>Compartí el código únicamente con quien quieras invitar.</small>
-<strong>Entrar por código</strong>
-<input id="roomCodeInput" inputmode="numeric" maxlength="8" placeholder="Código de 8 dígitos">
-<button id="joinRoom" class="secondary" type="button">Entrar a la sala</button>
-</div>
-<div id="roomCards"></div>
-</section>
-
-<section id="messages" aria-live="polite">
-<div id="empty">Cargando mensajes...</div>
-</section>
-
-<div class="controls">
-<div id="profileLine">
-<img id="currentAvatar" class="avatar" alt="Tu avatar">
-<span id="currentName">Elegí tu nombre en Personalizar</span>
-</div>
-<form id="chatForm">
-<textarea id="messageInput" maxlength="500" placeholder="Escribí un mensaje..." rows="2"></textarea>
-<div id="photoPreview" hidden>
-<img id="previewImage" alt="Vista previa de la foto">
-<span id="previewName"></span>
-<button id="removePhoto" class="secondary" type="button">Quitar</button>
-</div>
-<input id="messagePhoto" type="file" accept="image/jpeg,image/png,image/webp">
-<div id="composerButtons">
-<label id="photoLabel" for="messagePhoto" tabindex="0">📷 Adjuntar foto</label>
-<button id="sendButton" type="submit">Enviar ➤</button>
-</div>
-<small id="composerHint">Máximo 1 foto por mensaje · JPG, PNG o WebP · 5 MB</small>
-</form>
-</div>
-</main>
-
-<div id="photoViewer" hidden>
-<button id="closeViewer" type="button">✕ Cerrar</button>
-<img id="viewerImage" alt="Foto ampliada">
-</div>
-
+:root{--bg:#f4f5f9;--pn:#fff;--tx:#161823;--mu:#6b7085;--ac:#6c5ce7;--bd:#e3e5ee;--me:var(--ac);--mt:#fff;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e0f15;--pn:#181a24;--tx:#eceef7;--mu:#8d92a8;--bd:#272a38;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0e0f15;--pn:#181a24;--tx:#eceef7;--mu:#8d92a8;--bd:#272a38;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:15px/1.4 Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
+h1,h2,h3{font-family:Sora,system-ui,sans-serif;margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:var(--ac);color:#fff;transition:transform .15s,opacity .15s}
+button:hover{transform:translateY(-1px)}button.g{background:var(--pn);color:var(--tx);border:1px solid var(--bd)}
+input[type=text]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--bd);background:var(--pn)}
+.app{height:100%;display:flex;flex-direction:column;max-width:900px;margin:auto;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--pn);border-bottom:1px solid var(--bd)}
+.bar h2{flex:1;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av{width:38px;height:38px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:600;overflow:hidden;flex:none}
+.av img{width:100%;height:100%;object-fit:cover}
+.pad{padding:16px;overflow:auto;flex:1}
+.card{background:var(--pn);border:1px solid var(--bd);border-radius:18px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 2px 10px #0000000d}
+.card b{display:block}.card small,.mu{color:var(--mu)}
+.row{display:flex;gap:8px;margin-bottom:10px}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background-size:cover}
+.m{display:flex;gap:8px;max-width:86%}.m.me{align-self:flex-end;flex-direction:row-reverse}
+.b{background:var(--pn);border:1px solid var(--bd);padding:8px 12px;border-radius:16px;min-width:0;word-wrap:break-word}
+.me .b{background:var(--me);color:var(--mt);border-color:transparent}
+.b small{display:block;opacity:.7;font-size:12px}
+.b img,.b video{max-width:100%;border-radius:12px;display:block;margin-top:4px;max-height:280px}
+.b audio{max-width:100%;margin-top:4px}
+.comp{display:flex;gap:6px;padding:10px;background:var(--pn);border-top:1px solid var(--bd);align-items:center}
+.comp input[type=text]{flex:1}.ic{padding:10px;width:42px;background:var(--bg);color:var(--tx);border:1px solid var(--bd)}.ic.rec{background:#e5484d;color:#fff}
+.hide{display:none!important}
+.call{position:fixed;inset:0;background:#000d;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+.call video{width:100%;max-width:560px;border-radius:18px;background:#111;max-height:55vh}
+.call #lv{max-width:160px}
+.sw{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}.sw i{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent}.sw i.on{border-color:var(--tx)}
+label{display:block;font-weight:500;margin:12px 0 4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<div class="app" id="app"></div>
+<div class="call hide" id="call"><div id="cmsg" style="color:#fff"></div><video id="rv" autoplay playsinline></video><video id="lv" autoplay playsinline muted></video><div class="row"><button id="acc" class="hide">Contestar</button><button id="bye" style="background:#e5484d">Colgar</button></div></div>
 <script>
-(() => {
-"use strict";
-
-const URL_SUPABASE = "https://xluskazgonjpchcgdzii.supabase.co";
-const SUPABASE_KEY = "sb_publishable_pWiC1tR_43vVjF0snbXeBA_tTp-0pmk";
-const PHOTO_BUCKET = "chat-photos";
-const GLOBAL_ROOM = "GLOBAL";
-const PHOTO_ONLY = "📷 Foto adjunta";
-const $ = id => document.getElementById(id);
-
-if (!window.supabase) {
-  $("status").textContent = "Error: no se pudo cargar Supabase.";
-  $("status").classList.add("error");
-  return;
-}
-
-const client = window.supabase.createClient(URL_SUPABASE, SUPABASE_KEY);
-const messagesBox = $("messages");
-const statusBox = $("status");
-const nameInput = $("username");
-const input = $("messageInput");
-const photoInput = $("messagePhoto");
-
-let currentRoom = GLOBAL_ROOM;
-let selectedPhoto = null;
-let profilePhoto = localStorage.getItem("chatAvatar") || "";
-let realtimeChannel = null;
-let refreshTimer = null;
-let sending = false;
-let roomGeneration = 0;
-
-function status(message, error = false) {
-  statusBox.textContent = message;
-  statusBox.classList.toggle("error", error);
-}
-
-function defaultAvatar(name) {
-  const letter = (name || "?").trim().charAt(0).toUpperCase() || "?";
-  let hue = 220;
-  for (const char of (name || "")) hue = (hue * 31 + char.charCodeAt(0)) % 360;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="hsl(${hue},55%,48%)"/><text x="40" y="54" text-anchor="middle" font-size="38" font-family="Arial" fill="white">${letter.replace(/[<>&"]/g, "")}</text></svg>`;
-  return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
-}
-
-function setAvatar(img, name, url) {
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = defaultAvatar(name);
-  };
-  img.src = url || defaultAvatar(name);
-}
-
-function updateProfile() {
-  const name = nameInput.value.trim() || "Elegí tu nombre";
-  $("profileName").textContent = name;
-  $("currentName").textContent = name;
-  setAvatar($("profilePreview"), name, profilePhoto);
-  setAvatar($("currentAvatar"), name, profilePhoto);
-}
-
-function applySettings() {
-  const theme = localStorage.getItem("chatTheme") || "dark";
-  const color = localStorage.getItem("chatColor") || "#6878f5";
-  const background = localStorage.getItem("chatBackground") || "plain";
-  const bubbles = localStorage.getItem("chatBubbles") || "normal";
-
-  document.body.classList.toggle("light", theme === "light");
-  $("themeButton").textContent = theme === "light" ? "🌙 Modo oscuro" : "☀️ Modo claro";
-  document.documentElement.style.setProperty("--accent", color);
-  messagesBox.classList.remove("bg-gradient", "bg-dots", "bubbles-rounded", "bubbles-square");
-
-  if (background !== "plain") messagesBox.classList.add("bg-" + background);
-  if (bubbles === "rounded") messagesBox.classList.add("bubbles-rounded");
-  if (bubbles === "square") messagesBox.classList.add("bubbles-square");
-
-  $("colorInput").value = color;
-  $("backgroundSelect").value = background;
-  $("bubbleSelect").value = bubbles;
-}
-
-$("themeButton").addEventListener("click", () => {
-  localStorage.setItem("chatTheme", document.body.classList.contains("light") ? "dark" : "light");
-  applySettings();
-});
-
-$("settingsButton").addEventListener("click", () => {
-  $("settings").hidden = !$("settings").hidden;
-});
-
-$("roomsButton").addEventListener("click", async () => {
-  $("roomPanel").hidden = !$("roomPanel").hidden;
-  if (!$("roomPanel").hidden) await loadRooms();
-});
-
-$("closeRooms").addEventListener("click", () => $("roomPanel").hidden = true);
-
-$("colorInput").addEventListener("input", () => {
-  localStorage.setItem("chatColor", $("colorInput").value);
-  applySettings();
-});
-
-$("backgroundSelect").addEventListener("change", () => {
-  localStorage.setItem("chatBackground", $("backgroundSelect").value);
-  applySettings();
-});
-
-$("bubbleSelect").addEventListener("change", () => {
-  localStorage.setItem("chatBubbles", $("bubbleSelect").value);
-  applySettings();
-});
-
-$("resetSettings").addEventListener("click", () => {
-  ["chatTheme","chatColor","chatBackground","chatBubbles"].forEach(k => localStorage.removeItem(k));
-  applySettings();
-  status("Personalización restablecida.");
-});
-
-function getNameChanges() {
-  try {
-    return JSON.parse(localStorage.getItem("chatNameChanges") || "[]")
-      .filter(time => Date.now() - time < 86400000);
-  } catch {
-    return [];
-  }
-}
-
-$("saveName").addEventListener("click", () => {
-  const next = nameInput.value.trim();
-  const previous = localStorage.getItem("chatName") || "";
-
-  if (!next || next.length > 24) {
-    $("nameStatus").textContent = "El nombre debe tener entre 1 y 24 caracteres.";
-    return;
-  }
-
-  if (next === previous) {
-    $("nameStatus").textContent = "Ese ya es tu nombre actual.";
-    return;
-  }
-
-  const changes = getNameChanges();
-
-  if (previous && changes.length >= 2) {
-    const remaining = Math.max(0, 86400000 - (Date.now() - changes[0]));
-    const hours = Math.floor(remaining / 3600000);
-    const minutes = Math.ceil((remaining % 3600000) / 60000);
-    $("nameStatus").textContent = `Llegaste al límite. Esperá ${hours} h y ${minutes} min.`;
-    return;
-  }
-
-  if (previous) changes.push(Date.now());
-  localStorage.setItem("chatNameChanges", JSON.stringify(changes));
-  localStorage.setItem("chatName", next);
-  updateProfile();
-
-  $("nameStatus").textContent = previous
-    ? `Nombre actualizado. Cambios usados: ${changes.length} de 2.`
-    : "Nombre inicial guardado. No cuenta como cambio.";
-
-  status("Nombre guardado.");
-});
-
-nameInput.value = localStorage.getItem("chatName") || "";
-nameInput.addEventListener("input", updateProfile);
-
-async function compressImage(file, maxDimension = 1600, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
-
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("La imagen no es válida."));
-
-      img.onload = () => {
-        const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("No se pudo procesar la imagen."));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          blob => blob ? resolve(blob) : reject(new Error("No se pudo procesar la imagen.")),
-          "image/jpeg",
-          quality
-        );
-      };
-
-      img.src = reader.result;
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-async function uploadImage(file, folder) {
-  if (!file) return "";
-
-  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
-    throw new Error("Usá una imagen JPG, PNG o WebP.");
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error("La imagen supera el límite de 5 MB.");
-  }
-
-  const blob = await compressImage(file);
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, blob, {
-    contentType: "image/jpeg",
-    upsert: false
-  });
-
-  if (error) throw error;
-
-  return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
-}
-
-$("avatarInput").addEventListener("change", async () => {
-  const file = $("avatarInput").files[0];
-  if (!file) return;
-
-  try {
-    status("Subiendo foto de perfil...");
-    profilePhoto = await uploadImage(file, "avatars");
-    localStorage.setItem("chatAvatar", profilePhoto);
-    updateProfile();
-    status("Foto de perfil guardada.");
-  } catch (error) {
-    status("No se pudo subir el avatar: " + error.message, true);
-  } finally {
-    $("avatarInput").value = "";
-  }
-});
-
-$("removeAvatar").addEventListener("click", () => {
-  profilePhoto = "";
-  localStorage.removeItem("chatAvatar");
-  updateProfile();
-  status("Foto de perfil quitada de este navegador.");
-});
-
-function clearPreviewOnly() {
-  const image = $("previewImage");
-  if (image.src.startsWith("blob:")) URL.revokeObjectURL(image.src);
-  image.src = "";
-}
-
-function clearSelectedPhoto() {
-  clearPreviewOnly();
-  selectedPhoto = null;
-  photoInput.value = "";
-  $("photoPreview").hidden = true;
-  $("previewName").textContent = "";
-}
-
-photoInput.addEventListener("change", () => {
-  const file = photoInput.files && photoInput.files[0];
-  if (!file) return;
-
-  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
-    status("Usá una imagen JPG, PNG o WebP.", true);
-    clearSelectedPhoto();
-    return;
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    status("La imagen supera el límite de 5 MB.", true);
-    clearSelectedPhoto();
-    return;
-  }
-
-  clearPreviewOnly();
-  selectedPhoto = file;
-  $("previewImage").src = URL.createObjectURL(file);
-  $("previewName").textContent = file.name;
-  $("photoPreview").hidden = false;
-  status("Foto adjuntada. Podés escribir un texto y enviarlos juntos.");
-});
-
-$("removePhoto").addEventListener("click", clearSelectedPhoto);
-
-function addMessage(message) {
-  const duplicate = Array.from(
-    messagesBox.querySelectorAll("[data-message-id]")
-  ).some(el => el.dataset.messageId === String(message.id));
-
-  if (duplicate) return;
-
-  const empty = $("empty");
-  if (empty) empty.remove();
-
-  const item = document.createElement("article");
-  item.className = "message";
-  item.dataset.messageId = String(message.id);
-
-  const avatar = document.createElement("img");
-  avatar.className = "avatar";
-  avatar.alt = "Avatar";
-  setAvatar(avatar, message.username, message.avatar);
-  item.appendChild(avatar);
-
-  const body = document.createElement("div");
-  body.className = "message-body";
-
-  const username = document.createElement("strong");
-  username.textContent = message.username || "Usuario";
-  body.appendChild(username);
-
-  if (message.content && message.content !== PHOTO_ONLY) {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = message.content;
-    body.appendChild(paragraph);
-  }
-
-  if (message.photo_url) {
-    const photo = document.createElement("img");
-    photo.className = "message-photo";
-    photo.src = message.photo_url;
-    photo.alt = "Foto enviada por " + (message.username || "un usuario");
-    photo.loading = "lazy";
-
-    photo.addEventListener("click", () => {
-      $("viewerImage").src = photo.src;
-      $("photoViewer").hidden = false;
-    });
-
-    body.appendChild(photo);
-  }
-
-  const time = document.createElement("span");
-  time.className = "time";
-  time.textContent = message.created_at
-    ? new Date(message.created_at).toLocaleString("es-AR")
-    : "";
-
-  body.appendChild(time);
-  item.appendChild(body);
-  messagesBox.appendChild(item);
-}
-
-async function loadMessages() {
-  const room = currentRoom;
-
-  try {
-    const { data, error } = await client.from("messages")
-      .select("id,username,content,avatar,photo_url,room_code,created_at")
-      .eq("room_code", room)
-      .order("created_at", { ascending: true })
-      .limit(200);
-
-    if (error) throw error;
-    if (room !== currentRoom) return;
-
-    messagesBox.replaceChildren();
-
-    if (!data || !data.length) {
-      const empty = document.createElement("div");
-      empty.id = "empty";
-      empty.textContent = "Todavía no hay mensajes en esta sala. ¡Empezá la conversación!";
-      messagesBox.appendChild(empty);
-    } else {
-      data.forEach(addMessage);
-    }
-
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-  } catch (error) {
-    status("No se pudieron cargar los mensajes: " + error.message, true);
-  }
-}
-
-async function refreshMessages() {
-  const room = currentRoom;
-
-  try {
-    const { data, error } = await client.from("messages")
-      .select("id,username,content,avatar,photo_url,room_code,created_at")
-      .eq("room_code", room)
-      .order("created_at", { ascending: false })
-      .limit(30);
-
-    if (error) throw error;
-    if (room !== currentRoom) return;
-
-    (data || []).reverse().forEach(addMessage);
-  } catch (error) {
-    status("Error actualizando mensajes: " + error.message, true);
-  }
-}
-
-/* SALAS: se guardan localmente las salas que creaste o a las que entraste. */
-function getKnownRooms() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem("chatKnownRooms") || "[]");
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.filter(room =>
-      room &&
-      typeof room.code === "string" &&
-      typeof room.name === "string" &&
-      /^\d{8}$/.test(room.code)
-    );
-  } catch {
-    return [];
-  }
-}
-
-function rememberRoom(code, name) {
-  code = String(code);
-  name = String(name);
-
-  if (!/^\d{8}$/.test(code)) {
-    throw new Error("Código de sala no válido.");
-  }
-
-  const rooms = getKnownRooms().filter(room => room.code !== code);
-  rooms.push({ code, name });
-
-  localStorage.setItem("chatKnownRooms", JSON.stringify(rooms));
-}
-
-async function switchRoom(code, name) {
-  const generation = ++roomGeneration;
-  currentRoom = code;
-  $("roomPanel").hidden = true;
-  messagesBox.replaceChildren();
-
-  const empty = document.createElement("div");
-  empty.id = "empty";
-  empty.textContent = "Cargando sala...";
-  messagesBox.appendChild(empty);
-
-  status("Sala actual: " + name + " (" + code + ")");
-
-  if (realtimeChannel) {
-    const oldChannel = realtimeChannel;
-    realtimeChannel = null;
-    await client.removeChannel(oldChannel);
-  }
-
-  if (generation !== roomGeneration) return;
-
-  realtimeChannel = client.channel("messages-room-" + code)
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "messages",
-      filter: "room_code=eq." + code
-    }, payload => {
-      if (payload.new.room_code === currentRoom) {
-        addMessage(payload.new);
-        messagesBox.scrollTop = messagesBox.scrollHeight;
-      }
-    })
-    .subscribe();
-
-  await loadMessages();
-
-  if (generation !== roomGeneration) return;
-
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(refreshMessages, 5000);
-  await loadRooms();
-}
-
-async function loadRooms() {
-  const container = $("roomCards");
-  container.replaceChildren();
-
-  function addRoomCard(name, code) {
-    const card = document.createElement("div");
-    card.className = "room-card";
-
-    const label = document.createElement("span");
-    label.textContent = code === GLOBAL_ROOM
-      ? "🌎 Global"
-      : name + " · " + code;
-
-    const button = document.createElement("button");
-    button.textContent = currentRoom === code ? "Actual" : "Entrar";
-    button.disabled = currentRoom === code;
-
-    button.addEventListener("click", () => {
-      switchRoom(code, name);
-    });
-
-    card.append(label, button);
-    container.appendChild(card);
-  }
-
-  // Global es la única sala pública que aparece para todos.
-  addRoomCard("Global", GLOBAL_ROOM);
-
-  // No consultar la lista completa de chat_rooms para mostrarla.
-  // Cada navegador ve solo las salas que guardó al crearlas o entrar.
-  const rooms = getKnownRooms();
-
-  rooms.forEach(room => addRoomCard(room.name, room.code));
-
-  if (rooms.length === 0) {
-    const message = document.createElement("p");
-    message.textContent =
-      "No tenés salas privadas guardadas. Creá una o ingresá un código para unirte.";
-    message.style.color = "var(--muted)";
-    container.appendChild(message);
-  }
-}
-
-function generateRoomCode() {
-  const values = new Uint32Array(1);
-  if (window.crypto && window.crypto.getRandomValues) {
-    window.crypto.getRandomValues(values);
-    return String(10000000 + (values[0] % 90000000));
-  }
-  return String(Math.floor(10000000 + Math.random() * 90000000));
-}
-
-$("createRoom").addEventListener("click", async () => {
-  const name = $("newRoomName").value.trim();
-
-  if (!name || name.length > 40) {
-    status("Poné un nombre de sala de entre 1 y 40 caracteres.", true);
-    return;
-  }
-
-  $("createRoom").disabled = true;
-  status("Creando sala...");
-
-  try {
-    let created = null;
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const code = generateRoomCode();
-
-      const { data, error } = await client.from("chat_rooms")
-        .insert({ code, name })
-        .select("code,name")
-        .single();
-
-      if (!error) {
-        created = data;
-        break;
-      }
-
-      if (error.code !== "23505") throw error;
-    }
-
-    if (!created) {
-      throw new Error("No se pudo generar un código único. Intentá de nuevo.");
-    }
-
-    // Solo el navegador del creador guarda la sala automáticamente.
-    rememberRoom(created.code, created.name);
-
-    $("newRoomName").value = "";
-    await switchRoom(created.code, created.name);
-
-    status("Sala creada. Compartí este código: " + created.code);
-    alert(
-      "¡Sala creada!\nNombre: " + created.name +
-      "\nCódigo para compartir: " + created.code
-    );
-  } catch (error) {
-    status("No se pudo crear la sala: " + error.message, true);
-  } finally {
-    $("createRoom").disabled = false;
-  }
-});
-
-$("joinRoom").addEventListener("click", async () => {
-  const code = $("roomCodeInput").value.trim();
-
-  if (!/^\d{8}$/.test(code)) {
-    status("El código debe tener exactamente 8 dígitos.", true);
-    return;
-  }
-
-  $("joinRoom").disabled = true;
-
-  try {
-    const { data, error } = await client.from("chat_rooms")
-      .select("code,name")
-      .eq("code", code)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) throw new Error("No existe una sala con ese código.");
-
-    // Guardar la sala en este navegador solo después de validar el código.
-    rememberRoom(data.code, data.name);
-
-    $("roomCodeInput").value = "";
-    await switchRoom(data.code, data.name);
-    status("Entraste a " + data.name + ". Sala guardada en este navegador.");
-  } catch (error) {
-    status("No se pudo entrar: " + error.message, true);
-  } finally {
-    $("joinRoom").disabled = false;
-  }
-});
-
-$("chatForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  if (sending) return;
-
-  const username = nameInput.value.trim();
-  const typedContent = input.value.trim();
-  const photo = selectedPhoto;
-
-  if (!username) {
-    status("Primero elegí un nombre en Personalizar.", true);
-    $("settings").hidden = false;
-    nameInput.focus();
-    return;
-  }
-
-  if (!typedContent && !photo) {
-    status("Escribí un mensaje o adjuntá una foto.", true);
-    input.focus();
-    return;
-  }
-
-  if (typedContent.length > 500) {
-    status("El mensaje no puede superar los 500 caracteres.", true);
-    return;
-  }
-
-  sending = true;
-  $("sendButton").disabled = true;
-  $("photoLabel").style.pointerEvents = "none";
-  $("photoLabel").style.opacity = "0.5";
-
-  try {
-    status(photo ? "Subiendo foto y enviando mensaje..." : "Enviando mensaje...");
-
-    let photoUrl = null;
-    if (photo) photoUrl = await uploadImage(photo, "messages");
-
-    let clientId = localStorage.getItem("chatClientId");
-
-    if (!clientId) {
-      clientId = window.crypto && crypto.randomUUID
-        ? crypto.randomUUID()
-        : "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
-
-      localStorage.setItem("chatClientId", clientId);
-    }
-
-    // Evitar contenido vacío cuando se envía solamente una foto.
-    const contentToSave = typedContent || (photoUrl ? PHOTO_ONLY : "");
-
-    const row = {
-      username,
-      content: contentToSave,
-      avatar: profilePhoto || null,
-      photo_url: photoUrl,
-      room_code: currentRoom,
-      client_id: clientId
-    };
-
-    const { error } = await client.from("messages").insert(row);
-    if (error) throw error;
-
-    input.value = "";
-    clearSelectedPhoto();
-    status("Mensaje enviado correctamente.");
-
-    await refreshMessages();
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-  } catch (error) {
-    console.error("Error al enviar:", error);
-    status("No se pudo enviar: " + (error.message || "Error desconocido"), true);
-  } finally {
-    sending = false;
-    $("sendButton").disabled = false;
-    $("photoLabel").style.pointerEvents = "";
-    $("photoLabel").style.opacity = "";
-  }
-});
-
-$("closeViewer").addEventListener("click", () => {
-  $("photoViewer").hidden = true;
-  $("viewerImage").src = "";
-});
-
-$("photoViewer").addEventListener("click", event => {
-  if (event.target === $("photoViewer")) {
-    $("photoViewer").hidden = true;
-    $("viewerImage").src = "";
-  }
-});
-
-async function start() {
-  applySettings();
-  updateProfile();
-
-  try {
-    const { error } = await client.from("messages").select("id").limit(1);
-    if (error) throw error;
-
-    await switchRoom(GLOBAL_ROOM, "Global");
-    status("Conectado · Sala Global");
-  } catch (error) {
-    status("No se pudo conectar: " + error.message, true);
-  }
-}
-
-start();
+const $=s=>document.querySelector(s);
+const L={g(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const COLORS=['#6c5ce7','#00a884','#e5484d','#f59f00','#0ea5e9','#d6409f'];
+const BGS={liso:'',aurora:'linear-gradient(160deg,#6c5ce744,#0ea5e944)',atardecer:'linear-gradient(160deg,#f59f0044,#d6409f44)',bosque:'linear-gradient(160deg,#00a88444,#0e2f4444)'};
+let P=L.g('perfil',{name:'',av:'',ac:COLORS[0],theme:'auto',bg:'liso',uid:'u'+Math.random().toString(36).slice(2,10)});
+let rooms=L.g('salas',[]),cur=null,db=null,unsub=null,rm=null;
+const h=(t,a={},...k)=>{const e=document.createElement(t);for(const x in a){if(x==='on')for(const ev in a.on)e.addEventListener(ev,a.on[ev]);else if(x==='class')e.className=a[x];else e[x]=a[x]}k.flat().forEach(c=>e.append(c))
+return e};
+const save=()=>L.s('perfil',P),saveR=()=>L.s('salas',rooms);
+function theme(){const r=document.documentElement;r.style.setProperty('--ac',P.ac);P.theme==='auto'?r.removeAttribute('data-theme'):r.dataset.theme=P.theme}
+const ini=n=>(n||'?').trim()[0].toUpperCase();
+const avatar=(src,n)=>{const d=h('div',{class:'av'});src?d.append(h('img',{src})):d.textContent=ini(n);return d};
+function shrink(file,px,q){return new Promise(res=>{const i=new Image();i.onload=()=>{const s=Math.min(1,px/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q))};i.src=URL.createObjectURL(file)})}
+const b64=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
+
+/* ---- pantallas ---- */
+function home(){
+  if(unsub){unsub();unsub=null}cur=null;const a=$('#app');a.replaceChildren();
+  const code=h('input',{type:'text',placeholder:'Código de sala',maxLength:12});
+  const nm=h('input',{type:'text',placeholder:'Nombre para una sala nueva'});
+  const err=h('div',{class:'mu'});
+  a.append(h('div',{class:'bar'},avatar(P.av,P.name),h('h2',{},'Hola, '+(P.name||'invitado')),h('button',{class:'g',on:{click:settings}},'Estilo')),
+  h('div',{class:'pad'},
+    h('h3',{style:'margin-bottom:10px'},'Mis salas'),
+    ...(rooms.length?rooms.map(r=>h('div',{class:'card',on:{click:()=>open(r)}},h('div',{class:'av'},ini(r.name)),h('div',{},h('b',{},r.name),h('small',{},'Código '+r.code)))):[h('p',{class:'mu'},'Aún no tiene salas. Cree una o entre con un código.')]),
+    h('h3',{style:'margin:18px 0 8px'},'Unirse con código'),
+    h('div',{class:'row'},code,h('button',{on:{click:async()=>{const c=code.value.trim().toUpperCase();if(!c)return;err.textContent='Buscando…';try{const d=await db.doc('rooms/'+c).get();if(!d.exists){err.textContent='Código no válido.';return}const r={code:c,name:d.data().name};if(!rooms.find(x=>x.code===c)){rooms.push(r);saveR()}open(r)}catch(e){err.textContent='No se pudo comprobar el código.'}}}},'Entrar')),err,
+    h('h3',{style:'margin:18px 0 8px'},'Crear sala'),
+    h('div',{class:'row'},nm,h('button',{on:{click:async()=>{const c=Math.random().toString(36).slice(2,8).toUpperCase(),r={code:c,name:nm.value.trim()||'Sala '+c};try{await db.doc('rooms/'+c).set({name:r.name,t:Date.now()});rooms.push(r);saveR();open(r)}catch(e){err.textContent='No se pudo crear la sala.'}}}},'Crear')),
+    h('p',{class:'mu'},'Solo ve las salas que creó o a las que entró con el código.')))}
+function settings(){
+  const a=$('#app');a.replaceChildren();const n=h('input',{type:'text',value:P.name,placeholder:'Su nombre'});
+  const sw=h('div',{class:'sw'},COLORS.map(c=>h('i',{style:'background:'+c,className:c===P.ac?'on':'',on:{click:e=>{P.ac=c;save();theme();[...sw.children].forEach(x=>x.className='');e.target.className='on'}}})));
+  const th=h('select',{on:{change:e=>{P.theme=e.target.value;save();theme()}}},['auto|Automático','dark|Oscuro','light|Claro'].map(o=>{const[v,t]=o.split('|');return h('option',{value:v,textContent:t,selected:v===P.theme})}));
+  const bg=h('select',{on:{change:e=>{P.bg=e.target.value;save()}}},Object.keys(BGS).map(k=>h('option',{value:k,textContent:k,selected:k===P.bg})));
+  const f=h('input',{type:'file',accept:'image/*',className:'hide',on:{change:async e=>{if(e.target.files[0]){P.av=await shrink(e.target.files[0],96,.7);save();settings()}}}});
+  a.append(h('div',{class:'bar'},h('button',{class:'g',on:{click:()=>{P.name=n.value.trim();save();home()}}},'←'),h('h2',{},'Su estilo')),
+  h('div',{class:'pad'},h('div',{class:'row',style:'align-items:center'},avatar(P.av,P.name),h('button',{class:'g',on:{click:()=>f.click()}},'Cambiar foto'),f),
+  h('label',{},'Nombre'),n,h('label',{},'Color'),sw,h('label',{},'Tema'),th,h('label',{},'Fondo del chat'),bg))}
+function open(r){
+  cur=r;const a=$('#app');a.replaceChildren();
+  const box=h('div',{id:'msgs',style:'background-image:'+(BGS[P.bg]||'none')});
+  const txt=h('input',{type:'text',placeholder:'Escriba un mensaje',on:{keydown:e=>{if(e.key==='Enter')send()}}});
+  const send=async()=>{const v=txt.value.trim();if(!v)return;txt.value='';post({type:'text',body:v})};
+  const file=h('input',{type:'file',accept:'image/*',className:'hide',on:{change:async e=>{if(e.target.files[0])post({type:'img',body:await shrink(e.target.files[0],720,.6)});e.target.value=''}}});
+  const mic=rec('audio','🎤',15000,{audioBitsPerSecond:24000});const cam=rec('video','🎥',5000,{videoBitsPerSecond:200000,audioBitsPerSecond:24000});
+  a.append(h('div',{class:'bar'},h('button',{class:'g',on:{click:home}},'←'),h('h2',{},r.name+' · '+r.code),h('button',{class:'g',title:'Llamada',on:{click:()=>call(false)}},'📞'),h('button',{class:'g',title:'Videollamada',on:{click:()=>call(true)}},'📹')),box,
+  h('div',{class:'comp'},h('button',{class:'ic',on:{click:()=>file.click()}},'🖼'),file,mic,cam,txt,h('button',{on:{click:send}},'➤')));
+  if(unsub)unsub();
+  unsub=db.collection('rooms/'+r.code+'/msgs').orderBy('t').limit(150).onSnapshot(s=>{box.replaceChildren();s.docs.forEach(d=>box.append(bubble(d.data())));box.scrollTop=box.scrollHeight},()=>{});
+  function rec(kind,label,ms,opt){const b=h('button',{class:'ic',title:kind==='audio'?'Nota de voz':'Video corto (5 s)'},label);let mr=null;
+    b.onclick=async()=>{if(mr){mr.stop();return}
+      try{const st=await navigator.mediaDevices.getUserMedia(kind==='audio'?{audio:true}:{audio:true,video:true}),ch=[];mr=new MediaRecorder(st,opt);
+        mr.ondataavailable=e=>ch.push(e.data);b.classList.add('rec');const t=setTimeout(()=>mr&&mr.stop(),ms);
+        mr.onstop=async()=>{clearTimeout(t);st.getTracks().forEach(x=>x.stop());b.classList.remove('rec');const bl=new Blob(ch,{type:mr.mimeType});mr=null;const d=await b64(bl);
+          if(d.length>230000){alert('El archivo es demasiado largo. Intente algo más corto.');return}post({type:kind,body:d})};mr.start()}
+      catch(e){mr=null;alert('No hay permiso para usar el micrófono o la cámara.')}}
+    return b}}
+function post(m){if(!cur)return;db.collection('rooms/'+cur.code+'/msgs').add({...m,t:Date.now(),uid:P.uid,name:P.name||'Invitado',av:P.av}).catch(()=>alert('No se pudo enviar. El archivo puede ser muy pesado.'))}
+function bubble(m){const me=m.uid===P.uid;let c;
+  if(m.type==='img')c=h('img',{src:m.body});else if(m.type==='audio')c=h('audio',{src:m.body,controls:true});else if(m.type==='video')c=h('video',{src:m.body,controls:true,playsInline:true});else c=h('span',{},m.body);
+  return h('div',{class:'m'+(me?' me':'')},avatar(m.av,m.name),h('div',{class:'b'},h('small',{},m.name),c))}
+
+/* ---- llamadas (WebRTC, señal por la sala) ---- */
+let pc=null,ls=null,pend=[],offer=null;
+const cs=t=>{$('#call').classList.remove('hide');$('#cmsg').textContent=t};
+async function media(v){ls=await navigator.mediaDevices.getUserMedia({audio:true,video:v});$('#lv').srcObject=ls;$('#lv').style.display=v?'':'none'}
+function mk(){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});ls.getTracks().forEach(t=>pc.addTrack(t,ls));
+  pc.onicecandidate=e=>e.candidate&&rm.emit('sig',{k:'ice',c:e.candidate});pc.ontrack=e=>{$('#rv').srcObject=e.streams[0];cs('En llamada')};
+  pc.onconnectionstatechange=()=>{if(['failed','closed'].includes(pc.connectionState))end(false,'La llamada terminó')}}
+async function joinRoom(){if(rm)return;rm=await Claude_room().join('call-'+cur.code);
+  rm.on('sig',async m=>{if(m.isMe)return;const d=m.data;
+    if(d.k==='offer'){offer=d;cs((d.v?'Videollamada':'Llamada')+' entrante');$('#acc').classList.remove('hide')}
+    else if(d.k==='answer'&&pc){await pc.setRemoteDescription(d.sdp);pend.forEach(c=>pc.addIceCandidate(c));pend=[]}
+    else if(d.k==='ice'){pc&&pc.remoteDescription?pc.addIceCandidate(d.c):pend.push(d.c)}
+    else if(d.k==='bye')end(false,'La otra persona colgó')})}
+async function call(v){try{await joinRoom();await media(v);mk();const o=await pc.createOffer();await pc.setLocalDescription(o);cs('Llamando…');$('#acc').classList.add('hide');rm.emit('sig',{k:'offer',sdp:o,v})}catch(e){end(false,'');alert('No se pudo iniciar la llamada.')}}
+$('#acc').onclick=async()=>{try{$('#acc').classList.add('hide');await media(offer.v);mk();await pc.setRemoteDescription(offer.sdp);pend.forEach(c=>pc.addIceCandidate(c));pend=[];const a=await pc.createAnswer();await pc.setLocalDescription(a);rm.emit('sig',{k:'answer',sdp:a})}catch(e){end(true,'')}};
+$('#bye').onclick=()=>end(true);
+function end(tell,msg){if(tell&&rm)rm.emit('sig',{k:'bye'});pc&&pc.close();pc=null;ls&&ls.getTracks().forEach(t=>t.stop());ls=null;pend=[];offer=null;$('#rv').srcObject=null;$('#call').classList.add('hide');if(msg)alert(msg)}
+function Claude_room(){return window.__room}
+
+/* ---- arranque ---- */
+theme();
+$('#app').append(h('div',{class:'pad'},h('p',{class:'mu'},'Conectando…')));
+(async()=>{
+  let tries=0;const iv=setInterval(()=>{if(++tries>12){clearInterval(iv);if(!db)$('#app').replaceChildren(h('div',{class:'pad'},h('h3',{},'Necesita iniciar sesión en Claude para usar las salas.')))}},1000);
+  try{db=await claude.use('db');const u=await claude.use('user');window.__room=await claude.use('room');if(u){try{P.uid=await u.id()}catch(e){}}clearInterval(iv)}catch(e){}
+  if(!db)return;save();
+  if(!P.name){settings()}else home();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
